@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+venv/
+env/
+
+# ML artifacts
+checkpoints/
+outputs/
+runs/
+wandb/
+*.pt
+*.safetensors
+*.bin
+
+# HF / datasets caches
+.cache/
+hf_cache/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
