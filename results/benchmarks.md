@@ -42,6 +42,24 @@ the **gaps between variants** are the finding, not the absolute values.
 2. int4-AWQ dominated int8 (smaller **and** faster) with no quality loss; int8's only win was memory.
 3. Decode is the memory-bound bottleneck — which is why the KV cache and batching pay off.
 
+## vLLM comparison (capstone)
+
+Ran on an **A100-40 (CC 8.0)**, vLLM 0.6.3.post1, same model + prompt + 50 greedy tokens.
+
+| batch | vLLM TOTAL tok/s | vLLM per-seq tok/s |
+|---:|---:|---:|
+| 1  | 153.5  | 153.5 |
+| 8  | 929.5  | 116.2 |
+| 16 | 1503.3 | 94.0  |
+| 32 | 2174.2 | 67.9  |
+| 64 | 2767.6 | 43.2  |
+
+- vLLM throughput scales **153 → 2768 tok/s** (batch 1→64) and keeps climbing; per-seq degrades gracefully (153 → 43). That's PagedAttention + continuous batching (vLLM reported max concurrency 561×).
+- The hand-built pipeline **saturated ~124 tok/s at batch 16** with per-seq collapsing to 7.7.
+- **Honest caveat:** the hand-built numbers were on T4 / TITAN V; vLLM here is on an A100. So the raw ~12× at batch 16 mixes *engine + hardware*. The clean, hardware-independent signal is the **scaling shape** — vLLM sustains throughput under load where static batching collapses. A same-A100 rerun of the hand-built loop would isolate the engine contribution.
+- Output verified coherent / on-task (quality intact).
+
 ## Still to do
 
-- Benchmark against **vLLM** (capstone) · **variable-length** batching · final write-up
+- (optional) same-A100 rerun of the hand-built pipeline to isolate engine vs hardware
+- (optional) **variable-length** batching · final write-up

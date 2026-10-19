@@ -20,7 +20,13 @@ nvidia-smi --query-gpu=name,compute_cap,memory.free --format=csv
 /usr/bin/python3.12 -m venv "$WORK/venv"
 source "$WORK/venv/bin/activate"
 pip install --no-cache-dir --upgrade pip
-pip install --no-cache-dir vllm datasets
+# Pin an older vLLM. The latest build hard-requires FlashInfer, which JIT-compiles with
+# the node's old nvcc and fails (--compress-mode). vLLM 0.6.x uses the v0 engine + prebuilt
+# FlashAttention kernels — no FlashInfer, no JIT, works on this cluster's toolkit.
+# datasets dropped (its pyarrow needs numpy>=2, clashes with vllm's numpy 1.26).
+# transformers pinned to vllm 0.6.3's era — latest transformers (5.x) wants torch>=2.6
+# and changed the tokenizer API, which breaks this vLLM.
+pip install --no-cache-dir "vllm==0.6.3.post1" "transformers==4.46.3"
 
 python "$REPO/src/bench_vllm.py" | tee "$HOME/out/vllm_bench.txt"
 echo "=== done -> ~/out/vllm_bench.txt  (scp it to your laptop) ==="
