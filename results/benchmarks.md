@@ -46,20 +46,25 @@ the **gaps between variants** are the finding, not the absolute values.
 
 Ran on an **A100-40 (CC 8.0)**, vLLM 0.6.3.post1, same model + prompt + 50 greedy tokens.
 
-| batch | vLLM TOTAL tok/s | vLLM per-seq tok/s |
-|---:|---:|---:|
-| 1  | 153.5  | 153.5 |
-| 8  | 929.5  | 116.2 |
-| 16 | 1503.3 | 94.0  |
-| 32 | 2174.2 | 67.9  |
-| 64 | 2767.6 | 43.2  |
+Both on the **same A100-40 (CC 8.0)**, same model + prompt + 50 greedy tokens:
 
-- vLLM throughput scales **153 → 2768 tok/s** (batch 1→64) and keeps climbing; per-seq degrades gracefully (153 → 43). That's PagedAttention + continuous batching (vLLM reported max concurrency 561×).
-- The hand-built pipeline **saturated ~124 tok/s at batch 16** with per-seq collapsing to 7.7.
-- **Honest caveat:** the hand-built numbers were on T4 / TITAN V; vLLM here is on an A100. So the raw ~12× at batch 16 mixes *engine + hardware*. The clean, hardware-independent signal is the **scaling shape** — vLLM sustains throughput under load where static batching collapses. A same-A100 rerun of the hand-built loop would isolate the engine contribution.
+| batch | hand-built tok/s | vLLM tok/s | vLLM speedup |
+|---:|---:|---:|---:|
+| 1  | 44.8   | 153.5  | 3.4× |
+| 8  | 355.2  | 929.5  | 2.6× |
+| 16 | 740.6  | 1503.3 | 2.0× |
+| 32 | 1249.3 | 2174.2 | 1.7× |
+| 64 | 1915.1 | 2767.6 | 1.4× |
+
+(per-seq tok/s at batch 64: hand-built 29.9, vLLM 43.2)
+
+**Clean engine-vs-engine finding (identical hardware):**
+- On the same A100, vLLM is **1.4–3.4× faster** — biggest at single-sequence (CUDA graphs + fused kernels cut per-step overhead the hand-written Python loop pays), narrowing to ~1.4× at batch 64.
+- The gap **shrinks** as batch grows because this benchmark uses **uniform-length prompts arriving all at once — the best case for static batching** (no padding waste, no ragged finishes). vLLM's continuous batching + PagedAttention win *most* under realistic **ragged / variable-length / streaming** load, which this synthetic benchmark doesn't stress.
+- The earlier "~12×" was inflated by hardware: the first hand-built numbers were on a T4/TITAN V (batch-1 ~11 tok/s → 44.8 on the A100). On equal hardware the engine advantage is 1.4–3.4×.
 - Output verified coherent / on-task (quality intact).
 
 ## Still to do
 
-- (optional) same-A100 rerun of the hand-built pipeline to isolate engine vs hardware
-- (optional) **variable-length** batching · final write-up
+- (optional) **variable-length / streaming** batching — the workload where vLLM's lead would widen
+- final write-up
