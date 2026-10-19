@@ -42,6 +42,29 @@ the **gaps between variants** are the finding, not the absolute values.
 2. int4-AWQ dominated int8 (smaller **and** faster) with no quality loss; int8's only win was memory.
 3. Decode is the memory-bound bottleneck — which is why the KV cache and batching pay off.
 
+## vLLM comparison (capstone)
+
+Ran on an **A100-40 (CC 8.0)**, vLLM 0.6.3.post1, same model + prompt + 50 greedy tokens.
+
+Both on the **same A100-40 (CC 8.0)**, same model + prompt + 50 greedy tokens:
+
+| batch | hand-built tok/s | vLLM tok/s | vLLM speedup |
+|---:|---:|---:|---:|
+| 1  | 44.8   | 153.5  | 3.4× |
+| 8  | 355.2  | 929.5  | 2.6× |
+| 16 | 740.6  | 1503.3 | 2.0× |
+| 32 | 1249.3 | 2174.2 | 1.7× |
+| 64 | 1915.1 | 2767.6 | 1.4× |
+
+(per-seq tok/s at batch 64: hand-built 29.9, vLLM 43.2)
+
+**Clean engine-vs-engine finding (identical hardware):**
+- On the same A100, vLLM is **1.4–3.4× faster** — biggest at single-sequence (CUDA graphs + fused kernels cut per-step overhead the hand-written Python loop pays), narrowing to ~1.4× at batch 64.
+- The gap **shrinks** as batch grows because this benchmark uses **uniform-length prompts arriving all at once — the best case for static batching** (no padding waste, no ragged finishes). vLLM's continuous batching + PagedAttention win *most* under realistic **ragged / variable-length / streaming** load, which this synthetic benchmark doesn't stress.
+- The earlier "~12×" was inflated by hardware: the first hand-built numbers were on a T4/TITAN V (batch-1 ~11 tok/s → 44.8 on the A100). On equal hardware the engine advantage is 1.4–3.4×.
+- Output verified coherent / on-task (quality intact).
+
 ## Still to do
 
-- Benchmark against **vLLM** (capstone) · **variable-length** batching · final write-up
+- (optional) **variable-length / streaming** batching — the workload where vLLM's lead would widen
+- final write-up
