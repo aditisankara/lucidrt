@@ -7,4 +7,10 @@ accelerate>=0.33
 bitsandbytes>=0.43      # 4-bit / int8 quantization (GPU only)
 evaluate>=0.4
 rouge-score>=0.1.2      # summarization/simplification metric
+textstat>=0.7           # Flesch-Kincaid reading grade (interp behavioral eval)
 gradio>=4.0             # optional Day-4 demo
+
+# Mechanistic-interpretability (installed per-stage by cluster/run_interp.sh, not needed for
+# training or the behavioral eval). Pinned loosely; APIs shift between releases.
+nnsight>=0.3            # cross-model activation patching
+transformer-lens>=2.0  # logit lens (import name: transformer_lens) — Qwen2.5 support varies
