@@ -30,30 +30,22 @@ PROBE_PROMPT = C.PROMPT_TEMPLATE.format(technical=C.EVAL_SAMPLES[0])
 
 
 def try_load(hf_model=None):
-    """Attempt HookedTransformer load. Try the real name first, then a Qwen2 fallback name."""
-    from transformer_lens import HookedTransformer
+    """TransformerLens 4.0 removed HookedTransformer — boot a TransformerBridge and enable
+    compatibility mode (restores HookedTransformer-equivalent numerics + API: run_with_cache,
+    cfg.n_layers, ln_final, unembed, to_string). The bridge wraps an arbitrary HF model, so it
+    no longer depends on a per-architecture registry — Qwen2.5 should load directly."""
+    from transformer_lens import TransformerBridge
 
-    attempts = [C.MODEL, "Qwen/Qwen2-1.5B-Instruct"]  # 2.5 shares Qwen2's architecture
-    last_err = None
-    for name in attempts:
-        try:
-            print(f"  trying HookedTransformer.from_pretrained({name!r}, hf_model={'yes' if hf_model else 'no'}) ...", flush=True)
-            model = HookedTransformer.from_pretrained(
-                name,
-                hf_model=hf_model,
-                tokenizer=C.tokenizer(),
-                device=C.DEVICE,
-                dtype=torch.float16,
-                fold_ln=False,            # keep it simple/robust for a first probe
-                center_writing_weights=False,
-                center_unembed=False,
-            )
-            print(f"  LOADED as {name!r}  (n_layers={model.cfg.n_layers}, d_model={model.cfg.d_model})")
-            return model
-        except Exception as e:  # noqa: BLE001 - we want to report any failure verbatim
-            print(f"  FAILED ({name!r}): {type(e).__name__}: {str(e)[:300]}")
-            last_err = e
-    raise RuntimeError("TransformerLens could not load Qwen2.5-1.5B in this environment") from last_err
+    if hf_model is not None:
+        print("  note: --ft isn't wired for the 4.0 bridge yet; probing BASE weights.", flush=True)
+    print(f"  TransformerBridge.boot_transformers({C.MODEL!r}) ...", flush=True)
+    try:
+        model = TransformerBridge.boot_transformers(C.MODEL, device=C.DEVICE)
+    except TypeError:
+        model = TransformerBridge.boot_transformers(C.MODEL)  # signature without device=
+    model.enable_compatibility_mode()
+    print(f"  LOADED  (n_layers={model.cfg.n_layers}, d_model={model.cfg.d_model})")
+    return model
 
 
 def logit_lens(model, prompt, topk=5):
@@ -61,11 +53,14 @@ def logit_lens(model, prompt, topk=5):
     lines = [f"logit lens — layer-by-layer top-{topk} next-token (prompt ends at 'Plain language:')"]
     _, cache = model.run_with_cache(prompt)
     for L in range(model.cfg.n_layers):
-        resid = cache["resid_post", L][:, -1:, :]       # [1,1,d_model]
-        logits = model.unembed(model.ln_final(resid))[0, -1]  # [d_vocab]
-        top = logits.topk(topk).indices.tolist()
-        toks = [repr(model.to_string([t])) for t in top]
-        lines.append(f"  L{L:>2}: {', '.join(toks)}")
+        try:
+            resid = cache["resid_post", L][:, -1:, :]       # [1,1,d_model]
+            logits = model.unembed(model.ln_final(resid))[0, -1]  # [d_vocab]
+            top = logits.topk(topk).indices.tolist()
+            toks = [repr(model.to_string([t])) for t in top]
+            lines.append(f"  L{L:>2}: {', '.join(toks)}")
+        except Exception as e:  # noqa: BLE001 - keep going; one bad layer shouldn't kill the lens
+            lines.append(f"  L{L:>2}: <err {type(e).__name__}: {str(e)[:80]}>")
     return "\n".join(lines)
 
 
@@ -84,8 +79,8 @@ def main():
     print(f"=== TransformerLens probe ({'FT' if args.ft else 'BASE'}) ===", flush=True)
     try:
         model = try_load(hf_model=hf_model)
-    except RuntimeError as e:
-        print("\nRESULT: TransformerLens path unavailable here —", e)
+    except Exception as e:  # noqa: BLE001 - report any load failure cleanly, don't crash the stage
+        print(f"\nRESULT: TransformerLens path unavailable here — {type(e).__name__}: {e}")
         print("That's a fine outcome: we use nnsight for the mech-interp instead.")
         return
 
