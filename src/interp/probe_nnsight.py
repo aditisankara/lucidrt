@@ -80,8 +80,38 @@ def d_patch_write():
           int(base_logits[0, -1].argmax()), int(patched_logits[0, -1].argmax()))
 
 
+def e_prelist():
+    """List created BEFORE the trace, appended to inside. Does the real object survive?"""
+    acts = []
+    with lm.trace(p):
+        for L in range(3):
+            acts.append(lm.model.layers[L].output[0, -1, :].save())
+    print("  pre-list len", len(acts), "shapes", [tuple(a.shape) for a in acts])
+
+
+def f_nnsight_list():
+    """nnsight.list().save() accumulator — the idiomatic trace-aware container."""
+    with lm.trace(p):
+        acts = nnsight.list().save()
+        for L in range(3):
+            acts.append(lm.model.layers[L].output[0, -1, :])
+        logits = lm.lm_head.output[0, -1, :].save()
+    print("  nnsight.list len", len(acts), "elem0", tuple(acts[0].shape), "logits", tuple(logits.shape))
+
+
+def g_slice_save():
+    """Direct slice-save of the last-position vector to simple names (the A/D pattern)."""
+    with lm.trace(p):
+        v = lm.model.layers[0].output[0, -1, :].save()
+        lg = lm.lm_head.output[0, -1, :].save()
+    print("  slice-save v", tuple(v.shape), "| lg", tuple(lg.shape))
+
+
 section("A: structure", a_structure)
 section("B: explicit loop", b_explicit_loop)
 section("C: comprehension", c_comprehension)
 section("D: patch write", d_patch_write)
+section("E: pre-declared list", e_prelist)
+section("F: nnsight.list().save()", f_nnsight_list)
+section("G: direct slice-save", g_slice_save)
 print("\nDONE probe", flush=True)
