@@ -41,16 +41,22 @@ def val(proxy):
     return proxy.value if hasattr(proxy, "value") else proxy
 
 
-def hidden(module_out):
-    """Last-position hidden vector from a module's nnsight .output.
+# Detected once at runtime (see collect_ft_activations) and reused for the base patch, since both
+# models share the architecture. Avoids guessing nnsight's output shape: we save the RAW .output
+# and inspect the MATERIALIZED tensor, where isinstance/.ndim are reliable (unlike on a proxy).
+STRUCT = {"layer_tuple": None, "batched": None}
 
-    nnsight 0.8 + transformers 5: a decoder layer's .output is a TUPLE (hidden, ...); lm_head's is a
-    bare tensor. The traced activation is UNBATCHED -> [seq, dim], so the last token is [-1, :] (NOT
-    [0, -1, :]). isinstance(tuple) handles both module kinds and stays correct if a future version
-    drops the tuple wrapper.
+
+def slice_last(x):
+    """A materialized module output -> its last-token vector [dim].
+
+    Robust to both axes of nnsight/transformers drift: a decoder layer may hand back a tuple
+    (hidden, ...) or a bare tensor, and the trace may be batched [b,seq,dim] or unbatched [seq,dim].
+    We slice the REAL tensor here (post-trace), never a proxy inside the trace.
     """
-    hs = module_out[0] if isinstance(module_out, tuple) else module_out
-    return hs[-1, :]
+    if isinstance(x, (tuple, list)):
+        x = x[0]
+    return x[-1, :] if x.ndim == 2 else x[0, -1, :]
 
 
 def collect_ft_activations(prompts, n_layers):
@@ -61,14 +67,23 @@ def collect_ft_activations(prompts, n_layers):
     ft_lm = LanguageModel(ft_hf, tokenizer=C.tokenizer())
 
     per_prompt = []
-    for i, p in enumerate(prompts):
+    for p in prompts:
+        # Save the WHOLE raw .output (tuple or tensor); slice afterward on the real tensor.
         with ft_lm.trace(p):
-            resids = [hidden(ft_lm.model.layers[L].output).save() for L in range(n_layers)]
-            logits = hidden(ft_lm.lm_head.output).save()
-        resids_cpu = [val(r).detach().float().cpu() for r in resids]
-        logits_cpu = val(logits).detach().float().cpu()
-        if i == 0:  # confirm the traced shapes once (expect resid [dim], logits [vocab], both 1-D)
-            print(f"[shape] resid={tuple(resids_cpu[0].shape)} logits={tuple(logits_cpu.shape)}", flush=True)
+            layer_outs = [ft_lm.model.layers[L].output.save() for L in range(n_layers)]
+            lm_out = ft_lm.lm_head.output.save()
+        layer_vals = [val(o) for o in layer_outs]
+
+        if STRUCT["layer_tuple"] is None:  # detect + announce the output structure exactly once
+            lo0 = layer_vals[0]
+            STRUCT["layer_tuple"] = isinstance(lo0, (tuple, list))
+            h0 = lo0[0] if STRUCT["layer_tuple"] else lo0
+            STRUCT["batched"] = h0.ndim == 3
+            print(f"[probe] layer_tuple={STRUCT['layer_tuple']} hidden.shape={tuple(h0.shape)} "
+                  f"batched={STRUCT['batched']}", flush=True)
+
+        resids_cpu = [slice_last(o).detach().float().cpu() for o in layer_vals]
+        logits_cpu = slice_last(val(lm_out)).detach().float().cpu()
         per_prompt.append({"resids": resids_cpu, "logits": logits_cpu})
 
     C.free(ft_lm, ft_hf)
@@ -86,11 +101,12 @@ def patch_base(prompts, ft_data, n_layers):
     counted = torch.zeros(n_layers)
     top_tokens = []  # (base_top_str, ft_top_str) per prompt, to show the divergence
 
+    layer_tuple, batched = STRUCT["layer_tuple"], STRUCT["batched"]  # detected during the FT pass
     tok = C.tokenizer()
     for p, ftd in zip(prompts, ft_data):
         with base_lm.trace(p):
-            base_logits = hidden(base_lm.lm_head.output).save()
-        base_logits = val(base_logits).detach().float().cpu()
+            base_out = base_lm.lm_head.output.save()
+        base_logits = slice_last(val(base_out)).detach().float().cpu()
         ft_logits = ftd["logits"]
 
         t_star = int(ft_logits.argmax())
@@ -100,11 +116,14 @@ def patch_base(prompts, ft_data, n_layers):
         for L in range(n_layers):
             patch = ftd["resids"][L].to(C.DEVICE, dtype=torch.float16)
             with base_lm.trace(p):
-                out = base_lm.model.layers[L].output      # tuple (hidden, ...); transplant the FT vector
-                hs = out[0] if isinstance(out, tuple) else out
-                hs[-1, :] = patch                         # unbatched -> last token is [-1, :]
-                patched = hidden(base_lm.lm_head.output).save()
-            patched = val(patched).detach().float().cpu()
+                out = base_lm.model.layers[L].output       # transplant the FT vector at the last token
+                tgt = out[0] if layer_tuple else out        # unwrap proxy tuple via proxy-indexing
+                if batched:
+                    tgt[0, -1, :] = patch
+                else:
+                    tgt[-1, :] = patch
+                patched_out = base_lm.lm_head.output.save()
+            patched = slice_last(val(patched_out)).detach().float().cpu()
             if abs(denom) > 1e-4:  # skip prompts where base already agrees with FT (uninformative)
                 recov[L] += (patched[t_star] - base_logits[t_star]).item() / denom
                 counted[L] += 1
