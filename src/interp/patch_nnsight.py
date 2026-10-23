@@ -51,7 +51,9 @@ def collect_ft_activations(prompts, n_layers):
     per_prompt = []
     for p in prompts:
         with ft_lm.trace(p):
-            resids = [ft_lm.model.layers[L].output[0][0, -1, :].save() for L in range(n_layers)]
+            # transformers>=5: a decoder layer's .output is the hidden-states TENSOR [b,seq,hid]
+            # (in <5 it was a tuple (hidden,...), hence the old .output[0]). Index the tensor directly.
+            resids = [ft_lm.model.layers[L].output[0, -1, :].save() for L in range(n_layers)]
             logits = ft_lm.lm_head.output[0, -1, :].save()
         resids_cpu = [val(r).detach().float().cpu() for r in resids]
         per_prompt.append({"resids": resids_cpu, "logits": val(logits).detach().float().cpu()})
@@ -85,7 +87,7 @@ def patch_base(prompts, ft_data, n_layers):
         for L in range(n_layers):
             patch = ftd["resids"][L].to(C.DEVICE, dtype=torch.float16)
             with base_lm.trace(p):
-                base_lm.model.layers[L].output[0][0, -1, :] = patch
+                base_lm.model.layers[L].output[0, -1, :] = patch  # .output is the tensor (see above)
                 patched = base_lm.lm_head.output[0, -1, :].save()
             patched = val(patched).detach().float().cpu()
             if abs(denom) > 1e-4:  # skip prompts where base already agrees with FT (uninformative)

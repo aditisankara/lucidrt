@@ -10,7 +10,7 @@
 #   cd ~/lucidrt && bash cluster/run_interp.sh behavioral # just re-run the eval (no retrain)
 #
 # Or unattended:  sbatch cluster/run_interp.sbatch [stage]
-set -e
+set -eo pipefail   # pipefail: a crash in `python ... | tee` must fail the job, not be hidden by tee's exit 0
 
 STAGE="${1:-all}"                               # train | behavioral | all | patch | tlens | mechinterp
 REPO="$(cd "$(dirname "$0")/.." && pwd)"        # repo root — keep in HOME (persistent)
@@ -48,6 +48,7 @@ fi
 #     library's install trouble can't break the other) --------------------------------------
 if [ "$STAGE" = "patch" ] || [ "$STAGE" = "mechinterp" ]; then
     pip install --no-cache-dir nnsight
+    pip freeze | grep -iE "^(torch|transformers|nnsight|accelerate|peft)==" | tee "$HOME/out/patch_freeze.txt"
     python "$REPO/src/interp/patch_nnsight.py" | tee "$HOME/out/patch_nnsight.txt"
 fi
 if [ "$STAGE" = "tlens" ] || [ "$STAGE" = "mechinterp" ]; then
