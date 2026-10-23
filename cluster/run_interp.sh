@@ -51,7 +51,15 @@ if [ "$STAGE" = "patch" ] || [ "$STAGE" = "mechinterp" ]; then
     pip freeze | grep -iE "^(torch|transformers|nnsight|accelerate|peft)==" | tee "$HOME/out/patch_freeze.txt"
     python "$REPO/src/interp/patch_nnsight.py" | tee "$HOME/out/patch_nnsight.txt"
 fi
-if [ "$STAGE" = "tlens" ] || [ "$STAGE" = "mechinterp" ]; then
+if [ "$STAGE" = "logitlens" ] || [ "$STAGE" = "mechinterp" ]; then
+    pip install --no-cache-dir nnsight   # fast nnsight-based logit lens (replaces the slow TransformerLens probe)
+    python "$REPO/src/interp/logit_lens_nnsight.py" | tee "$HOME/out/logit_lens.txt"
+fi
+if [ "$STAGE" = "attnpatch" ] || [ "$STAGE" = "mechinterp" ]; then
+    pip install --no-cache-dir nnsight   # sublayer-resolved attention-output patching (ties to the attention-only LoRA)
+    python "$REPO/src/interp/attn_patch_nnsight.py" | tee "$HOME/out/attn_patch.txt"
+fi
+if [ "$STAGE" = "tlens" ]; then   # DEPRECATED: TransformerLens load is >10 min; use 'logitlens' instead
     pip install --no-cache-dir transformer_lens
     python "$REPO/src/interp/explore_tlens.py" | tee "$HOME/out/tlens_base.txt"
 fi
