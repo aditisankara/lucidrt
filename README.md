@@ -4,7 +4,8 @@ Fine-tune a small modern LLM (**Qwen2.5-1.5B-Instruct**) with LoRA to rewrite de
 clinical abstracts into **plain language a patient can understand** — then build an
 inference-optimization harness (KV cache, quantization, batching, profiling) and prove
 every speedup with measured, apples-to-apples numbers, ending with a same-hardware
-benchmark against **vLLM**.
+benchmark against **vLLM** — and finally an **interpretability pass** that catches the
+fine-tune's headline metric lying and localizes, inside the network, *why*.
 
 > ⚕️ **Not for clinical use.** Educational / portfolio project trained on public,
 > de-identified data ([`lighteval/med_paragraph_simplification`](https://huggingface.co/datasets/lighteval/med_paragraph_simplification) /
@@ -15,17 +16,19 @@ benchmark against **vLLM**.
 
 ## Why this project exists
 
-It carries two signals in one repo:
+It carries three signals in one repo:
 
 1. **ML / training** — fine-tune a current LLM with LoRA in PyTorch, with a real loss curve
    and a quality metric.
 2. **ML systems / inference engineering** — KV caching, quantization, dynamic batching,
    prefill/decode profiling, and a rigorous benchmark report that isolates *one variable at
    a time*.
+3. **Interpretability** — not just *that* a metric moved, but *why*: catching a Goodharted
+   metric and causally localizing the behavior change to a specific part of the network.
 
 The theme throughout: don't just make it work — **optimize each step, measure it against a
 baseline, and keep the honest trade-offs** (including the "optimization" that made things
-worse).
+worse — the sharpest example of which is the fine-tune's own headline number).
 
 ---
 
@@ -37,7 +40,7 @@ numbers come from several GPU sessions (Colab T4 + NUS SoC cluster), so treat la
 
 | Area | Result |
 |---|---|
-| **Fine-tune (LoRA)** | **+37% ROUGE-L** (0.097 → 0.133); adapter is **20.2 MB**, only **0.14%** of params trained (2.18M / 1.54B); loss 1.88 → ~1.55 over 300 steps |
+| **Fine-tune (LoRA)** | **+37% ROUGE-L** (0.097 → 0.133); adapter **20.2 MB**, only **0.14%** of params trained (2.18M / 1.54B); loss 1.88 → ~1.55 over 300 steps — **but ⚠️ this ROUGE gain is a Goodhart artifact, not a quality win** (see [Interpretability](#what-did-the-fine-tune-actually-change-an-interpretability-pass)) |
 | **KV cache** | **~1.9× faster** than a naive re-encode loop, **bit-identical** output (gap grows with output length) |
 | **Prefill vs decode** | decode is **97–99% of runtime** and **~400× more expensive per token** than prefill — the bottleneck is memory-bound |
 | **int4-AWQ** | **1.15 GB** (2.7× smaller than fp16's 3.10 GB), **7.7× faster decode than int8** |
@@ -45,11 +48,15 @@ numbers come from several GPU sessions (Colab T4 + NUS SoC cluster), so treat la
 | **Batching** | **~10× throughput** (11 → 124 tok/s at batch 16) by amortizing the weight load |
 | **vLLM (same A100)** | **1.4–3.4× faster** than the hand-built pipeline — the pure engine gap |
 
-**The two findings I'd lead with in an interview:**
-- Fine-tuning bought real *quality*; quantization bought *memory/speed at ~no quality cost*.
-  int4-AWQ dominated int8 (smaller **and** faster, no quality loss) — int8's only win was memory.
-- Decode is memory-bound, which is *why* the KV cache and batching pay off at all. That one
-  fact ties the whole project together.
+**The findings I'd lead with in an interview:**
+- The fine-tune's **+37% ROUGE-L was a Goodhart artifact** — it learned the reference *register*
+  and hallucinated specifics instead of simplifying (readability **+4.2 grade levels**, fabricated
+  numbers **0 → 19**), and I localized the change to a **late-layer attention mechanism (~layer 20)**.
+  Catching a flattering metric lying — and proving it three different ways — is the result I'm
+  proudest of. (See [Interpretability](#what-did-the-fine-tune-actually-change-an-interpretability-pass).)
+- **int4-AWQ dominated int8** — smaller **and** faster at no quality cost; int8's only win was memory.
+- **Decode is memory-bound**, which is *why* the KV cache and batching pay off at all. That one
+  fact ties the whole systems half together.
 
 Full tables: [`results/benchmarks.md`](results/benchmarks.md).
 
@@ -108,6 +115,83 @@ All of this is encoded in [`cluster/run_vllm.sh`](cluster/run_vllm.sh) /
 
 ---
 
+## What did the fine-tune actually change? (an interpretability pass)
+
+The headline `+37% ROUGE-L` looked like a clean win. It isn't — and catching that is the result
+I'd defend hardest.
+
+**The metric was Goodharted.** ROUGE scores n-gram overlap against the reference "plain-language"
+answers. But those references are **Cochrane plain-language summaries**, and a diagnostic on the
+dataset (n=100) shows they aren't actually simpler than the inputs they summarize:
+
+| text | Flesch–Kincaid grade |
+|---|---|
+| technical input | 11.7 |
+| "plain" reference answer | **13.4** |
+
+The references are *harder* than the inputs — dense with study specifics (years, participant
+counts, drug names, risk ratios). So "maximize ROUGE against these references" does **not** mean
+"simplify"; it means "write in the Cochrane review register, with specifics." The fine-tune learned
+exactly that.
+
+**Behavioral eval (base vs fine-tuned, held-out medical probes):**
+
+| metric | base | fine-tuned |
+|---|---|---|
+| readability (FK grade) | 7.8 | **12.0**  (+4.2 — *harder*, not simpler) |
+| fabricated numbers (figures in the output absent from the input) | **0** | **19** |
+
+The fine-tune invents specifics that were never in the input — study years, participant counts,
+drugs, "RR 0.68 95% CI 0.44–1.05". The **base** instruct model is the *more faithful* simplifier
+(zero fabrications, lower grade). So the fine-tune didn't learn to simplify; it learned to **emit a
+review-summary template and hallucinate the details** — and ROUGE *rewarded* it for doing so.
+
+> This is the project's theme at its sharpest: a **+37% metric gain that is actually a regression on
+> the real task.** The number is real; the story it tells is false.
+
+**Where did the fine-tune install this behavior?** The LoRA touched only attention
+(`q/k/v/o_proj`). Using [**nnsight**](https://nnsight.net), I ran three mechanistic probes on the
+next-token step right after the `Plain language:` cue, comparing base vs fine-tuned:
+
+1. **Cross-model activation patching (residual stream)** — transplant the fine-tune's residual at
+   one layer into the base and measure how far the base's prediction moves toward the fine-tune's.
+   Recovery is ~0 in early layers and climbs across the late half: the divergence is a
+   **late-network** effect. (The curve rises to 1.0 at the last layer *by construction*, so the
+   signal is the *ramp*, not the peak.)
+2. **Attention-output patching** — transplant only the fine-tune's *attention* output per layer,
+   isolating each attention sublayer's marginal contribution (and matching what the LoRA actually
+   modified). This **localizes**: recovery is ~0 for layers 0–14, then spikes, **peaking at layer 20
+   (0.65)** — patching that *one* attention sublayer recovers two-thirds of the fine-tune's decision.
+3. **Logit lens** — decode each layer's residual through the final head to watch the prediction
+   form. The base resolves toward input-grounded tokens (`'Two'`, `'Participants'`); the fine-tune's
+   late layers lock onto review-summary openers (`'This'`, `'Study'`, `'We'`) — on one prompt it even
+   passes *through* the faithful token before overriding to `'We'` in the final two layers.
+
+**All three converge:** the attention-only LoRA installed a **late-layer (~layer 20) attention
+mechanism** that flips the model from *echoing the input* to *emitting a template opener*. That is
+the Goodhart register-capture, causally localized.
+
+![Per-layer recovery: residual-stream patch vs attention-output patch](results/interp/patch_recovery.png)
+
+*The residual-stream patch (blue) ramps to 1.0 **by construction** — a late layer's residual is
+essentially the final answer. The attention-output patch (orange) stays flat through the first half
+and then **spikes at layer 20**: that's the real localization the residual patch can't give.*
+
+![Logit lens, base vs fine-tuned, late layers](results/interp/logit_lens.png)
+
+*Logit lens on the two diverging prompts. The **base** (blue cells) resolves toward input-faithful
+tokens; the **fine-tune** (orange cells) locks onto the review-summary register — and on prompt 1 it
+even passes back through the faithful `'Two'` before overriding to `'We'` in the final two layers.*
+
+**Honest caveats** (stated because they matter): small probe set (n=3); logit-lens early layers
+aren't linearly decodable and should be ignored; activation patching demonstrates *sufficiency*, not
+necessity; the attention effect is concentrated around layer 20 but not solitary.
+
+Scripts in [`src/interp/`](src/interp/); raw per-layer tables in
+[`results/interp/`](results/interp/).
+
+---
+
 ## Repo layout
 
 ```
@@ -116,14 +200,21 @@ lucidrt/
     data.py                     # data pipeline: Dataset + collator + DataLoaders
     bench_handbuilt.py          # hand-built KV-cache + static-batching benchmark
     bench_vllm.py               # vLLM benchmark (same model/prompt/length for parity)
+    interp/                     # interpretability pass (base vs fine-tuned)
+      behavioral_eval.py        # readability (FK grade) + fabricated-number metrics
+      patch_nnsight.py          # cross-model activation patching (residual stream)
+      attn_patch_nnsight.py     # attention-output patching — localizes to ~layer 20
+      logit_lens_nnsight.py     # per-layer logit lens (base vs fine-tuned trajectory)
     notebooks/
       lucidrt_data_pipeline.ipynb  # the main notebook: fine-tune → KV cache → quant → batching → eval
   cluster/
     run_soc.sh / run_soc.sbatch       # training / notebook env on the NUS SoC cluster
     run_handbuilt.sh / .sbatch        # hand-built benchmark on an A100
     run_vllm.sh / .sbatch             # vLLM benchmark on the SAME A100 (see war story)
+    run_interp.sh / .sbatch           # interpretability stages (behavioral | patch | logitlens | attnpatch)
   results/
     benchmarks.md               # full benchmark tables + takeaways
+    interp/                     # per-layer patching + logit-lens tables
   README.md
 ```
 
@@ -154,11 +245,17 @@ sbatch cluster/run_vllm.sbatch        # vLLM, separate venv  -> ~/out/vllm_bench
 - **Variable-length / streaming batching** — left-padding + attention masks for mixed-length
   prompts. This is the workload where vLLM's continuous batching lead would widen, and the
   obvious next experiment to make the comparison tell the whole story.
-- An interpretability pass on *why* int4-AWQ beats int8 (outlier activation channels) and
-  *where* the +37% fine-tune gain lives in the weights.
+- **Fix the training signal the interpretability pass exposed** — the real lesson is that the
+  dataset/metric, not the model, was the problem: retrain against a faithfulness-aware objective
+  (or a genuinely-simpler reference set) and re-run the behavioral eval to confirm the fabrications
+  go away.
+- **Interpretability on *why* int4-AWQ beats int8** — outlier activation channels (shares the
+  logit-lens / patching tooling already built here).
 
 ---
 
 *Concepts touched: autoregressive decoding, KV cache, prefill vs. decode, memory-bound
 roofline, quantization (int8 / int4-AWQ), LoRA/PEFT, request batching, PagedAttention &
-continuous batching, and benchmarking discipline (CUDA sync, warm-up, one-variable-at-a-time).*
+continuous batching, benchmarking discipline (CUDA sync, warm-up, one-variable-at-a-time),
+and interpretability — Goodhart's law / metric gaming, activation patching (residual &
+attention), and the logit lens.*
