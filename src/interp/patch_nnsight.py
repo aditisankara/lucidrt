@@ -41,6 +41,18 @@ def val(proxy):
     return proxy.value if hasattr(proxy, "value") else proxy
 
 
+def hidden(module_out):
+    """Last-position hidden vector from a module's nnsight .output.
+
+    nnsight 0.8 + transformers 5: a decoder layer's .output is a TUPLE (hidden, ...); lm_head's is a
+    bare tensor. The traced activation is UNBATCHED -> [seq, dim], so the last token is [-1, :] (NOT
+    [0, -1, :]). isinstance(tuple) handles both module kinds and stays correct if a future version
+    drops the tuple wrapper.
+    """
+    hs = module_out[0] if isinstance(module_out, tuple) else module_out
+    return hs[-1, :]
+
+
 def collect_ft_activations(prompts, n_layers):
     """Run FT once; cache per-(prompt,layer) last-position residual + FT next-token logits."""
     from nnsight import LanguageModel
@@ -49,14 +61,15 @@ def collect_ft_activations(prompts, n_layers):
     ft_lm = LanguageModel(ft_hf, tokenizer=C.tokenizer())
 
     per_prompt = []
-    for p in prompts:
+    for i, p in enumerate(prompts):
         with ft_lm.trace(p):
-            # transformers>=5: a decoder layer's .output is the hidden-states TENSOR [b,seq,hid]
-            # (in <5 it was a tuple (hidden,...), hence the old .output[0]). Index the tensor directly.
-            resids = [ft_lm.model.layers[L].output[0, -1, :].save() for L in range(n_layers)]
-            logits = ft_lm.lm_head.output[0, -1, :].save()
+            resids = [hidden(ft_lm.model.layers[L].output).save() for L in range(n_layers)]
+            logits = hidden(ft_lm.lm_head.output).save()
         resids_cpu = [val(r).detach().float().cpu() for r in resids]
-        per_prompt.append({"resids": resids_cpu, "logits": val(logits).detach().float().cpu()})
+        logits_cpu = val(logits).detach().float().cpu()
+        if i == 0:  # confirm the traced shapes once (expect resid [dim], logits [vocab], both 1-D)
+            print(f"[shape] resid={tuple(resids_cpu[0].shape)} logits={tuple(logits_cpu.shape)}", flush=True)
+        per_prompt.append({"resids": resids_cpu, "logits": logits_cpu})
 
     C.free(ft_lm, ft_hf)
     return per_prompt
@@ -76,7 +89,7 @@ def patch_base(prompts, ft_data, n_layers):
     tok = C.tokenizer()
     for p, ftd in zip(prompts, ft_data):
         with base_lm.trace(p):
-            base_logits = base_lm.lm_head.output[0, -1, :].save()
+            base_logits = hidden(base_lm.lm_head.output).save()
         base_logits = val(base_logits).detach().float().cpu()
         ft_logits = ftd["logits"]
 
@@ -87,8 +100,10 @@ def patch_base(prompts, ft_data, n_layers):
         for L in range(n_layers):
             patch = ftd["resids"][L].to(C.DEVICE, dtype=torch.float16)
             with base_lm.trace(p):
-                base_lm.model.layers[L].output[0, -1, :] = patch  # .output is the tensor (see above)
-                patched = base_lm.lm_head.output[0, -1, :].save()
+                out = base_lm.model.layers[L].output      # tuple (hidden, ...); transplant the FT vector
+                hs = out[0] if isinstance(out, tuple) else out
+                hs[-1, :] = patch                         # unbatched -> last token is [-1, :]
+                patched = hidden(base_lm.lm_head.output).save()
             patched = val(patched).detach().float().cpu()
             if abs(denom) > 1e-4:  # skip prompts where base already agrees with FT (uninformative)
                 recov[L] += (patched[t_star] - base_logits[t_star]).item() / denom
