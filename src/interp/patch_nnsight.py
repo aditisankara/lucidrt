@@ -20,9 +20,10 @@ of the divergence, not the whole multi-token hallucination (a later, multi-posit
 Memory-safe: FT runs first and its activations are cached to CPU, then FT is freed and BASE is
 loaded — never both on the GPU at once.
 
-NOTE ON VERSIONS: nnsight's tracing API has changed across releases. This targets nnsight >=0.3
-(tested shape of .trace / .save). If the first run throws on .save()/.value or on assigning to a
-module output, paste the traceback — the fix is usually a one-line API tweak, not a redesign.
+NOTE ON VERSIONS: written for nnsight 0.8.x + transformers 5.x (verified on the SoC cluster via
+src/interp/probe_nnsight.py). Key 0.8 facts the code depends on are documented at the helpers below:
+a decoder layer's .output is a bare batched tensor, and any list that collects saved values must be
+declared BEFORE the trace block. If a future version drifts, re-run probe_nnsight.py to re-confirm.
 
 Run:  python src/interp/patch_nnsight.py        (GPU node; adapter must already be trained)
 """
@@ -36,27 +37,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import interp_common as C  # noqa: E402
 
 
-def val(proxy):
-    """nnsight: a .save()'d proxy exposes its tensor as .value (<=0.3) or acts as it (0.4+)."""
-    return proxy.value if hasattr(proxy, "value") else proxy
-
-
-# Detected once at runtime (see collect_ft_activations) and reused for the base patch, since both
-# models share the architecture. Avoids guessing nnsight's output shape: we save the RAW .output
-# and inspect the MATERIALIZED tensor, where isinstance/.ndim are reliable (unlike on a proxy).
-STRUCT = {"layer_tuple": None, "batched": None}
-
-
-def slice_last(x):
-    """A materialized module output -> its last-token vector [dim].
-
-    Robust to both axes of nnsight/transformers drift: a decoder layer may hand back a tuple
-    (hidden, ...) or a bare tensor, and the trace may be batched [b,seq,dim] or unbatched [seq,dim].
-    We slice the REAL tensor here (post-trace), never a proxy inside the trace.
-    """
-    if isinstance(x, (tuple, list)):
-        x = x[0]
-    return x[-1, :] if x.ndim == 2 else x[0, -1, :]
+# nnsight 0.8 notes (verified on this cluster via src/interp/probe_nnsight.py):
+#   - A transformers-5.x decoder layer's .output is a BARE tensor [batch, seq, hidden] (no tuple),
+#     and lm_head.output is [batch, seq, vocab]; the last prompt token is [0, -1, :].
+#   - nnsight runs the `with model.trace()` body via exec() in its own locals, so a name BOUND
+#     INSIDE the block (e.g. a list built there) does NOT survive to the caller -> UnboundLocalError.
+#     A list declared BEFORE the block does survive (shared object, append mutates in place).
+#   - Saved slices are real tensors after the block: use them directly (no .value, no unwrap).
 
 
 def collect_ft_activations(prompts, n_layers):
@@ -68,23 +55,13 @@ def collect_ft_activations(prompts, n_layers):
 
     per_prompt = []
     for p in prompts:
-        # Save the WHOLE raw .output (tuple or tensor); slice afterward on the real tensor.
+        resids = []  # MUST be declared before the trace (see note above) so appends survive
         with ft_lm.trace(p):
-            layer_outs = [ft_lm.model.layers[L].output.save() for L in range(n_layers)]
-            lm_out = ft_lm.lm_head.output.save()
-        layer_vals = [val(o) for o in layer_outs]
-
-        if STRUCT["layer_tuple"] is None:  # detect + announce the output structure exactly once
-            lo0 = layer_vals[0]
-            STRUCT["layer_tuple"] = isinstance(lo0, (tuple, list))
-            h0 = lo0[0] if STRUCT["layer_tuple"] else lo0
-            STRUCT["batched"] = h0.ndim == 3
-            print(f"[probe] layer_tuple={STRUCT['layer_tuple']} hidden.shape={tuple(h0.shape)} "
-                  f"batched={STRUCT['batched']}", flush=True)
-
-        resids_cpu = [slice_last(o).detach().float().cpu() for o in layer_vals]
-        logits_cpu = slice_last(val(lm_out)).detach().float().cpu()
-        per_prompt.append({"resids": resids_cpu, "logits": logits_cpu})
+            for L in range(n_layers):
+                resids.append(ft_lm.model.layers[L].output[0, -1, :].save())
+            logits = ft_lm.lm_head.output[0, -1, :].save()
+        resids_cpu = [r.detach().float().cpu() for r in resids]
+        per_prompt.append({"resids": resids_cpu, "logits": logits.detach().float().cpu()})
 
     C.free(ft_lm, ft_hf)
     return per_prompt
@@ -101,12 +78,11 @@ def patch_base(prompts, ft_data, n_layers):
     counted = torch.zeros(n_layers)
     top_tokens = []  # (base_top_str, ft_top_str) per prompt, to show the divergence
 
-    layer_tuple, batched = STRUCT["layer_tuple"], STRUCT["batched"]  # detected during the FT pass
     tok = C.tokenizer()
     for p, ftd in zip(prompts, ft_data):
         with base_lm.trace(p):
-            base_out = base_lm.lm_head.output.save()
-        base_logits = slice_last(val(base_out)).detach().float().cpu()
+            base_logits = base_lm.lm_head.output[0, -1, :].save()
+        base_logits = base_logits.detach().float().cpu()
         ft_logits = ftd["logits"]
 
         t_star = int(ft_logits.argmax())
@@ -114,16 +90,12 @@ def patch_base(prompts, ft_data, n_layers):
         top_tokens.append((tok.decode([int(base_logits.argmax())]), tok.decode([t_star])))
 
         for L in range(n_layers):
-            patch = ftd["resids"][L].to(C.DEVICE, dtype=torch.float16)
+            patch = ftd["resids"][L].to(C.DEVICE, dtype=torch.float16)  # [hidden]
             with base_lm.trace(p):
-                out = base_lm.model.layers[L].output       # transplant the FT vector at the last token
-                tgt = out[0] if layer_tuple else out        # unwrap proxy tuple via proxy-indexing
-                if batched:
-                    tgt[0, -1, :] = patch
-                else:
-                    tgt[-1, :] = patch
-                patched_out = base_lm.lm_head.output.save()
-            patched = slice_last(val(patched_out)).detach().float().cpu()
+                # in-place slice write of the last-token residual (broadcasts [hidden] -> [1, hidden])
+                base_lm.model.layers[L].output[:, -1, :] = patch
+                patched = base_lm.lm_head.output[0, -1, :].save()
+            patched = patched.detach().float().cpu()
             if abs(denom) > 1e-4:  # skip prompts where base already agrees with FT (uninformative)
                 recov[L] += (patched[t_star] - base_logits[t_star]).item() / denom
                 counted[L] += 1
