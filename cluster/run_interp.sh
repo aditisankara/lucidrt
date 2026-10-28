@@ -40,7 +40,10 @@ source "$WORK/venv/bin/activate"
 pip install --no-cache-dir --upgrade pip
 pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu126
 pip install --no-cache-dir \
-    "transformers>=4.44" "datasets>=2.20" accelerate peft textstat
+    "transformers>=4.44" "datasets>=2.20,<4" accelerate peft textstat
+# datasets pinned <4: v4 removed dataset-loading-script support, which the clean set
+# (paniniDot/sci_lay) still ships. v3.x runs it with trust_remote_code=True; the trap set
+# (parquet-native) loads fine either way.
 
 python -c "import torch; print('cuda ok:', torch.cuda.is_available(), torch.cuda.get_device_name(0))"
 

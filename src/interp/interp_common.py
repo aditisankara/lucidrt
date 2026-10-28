@@ -50,6 +50,7 @@ DATASETS = {
         "eval_split": "validation",
         "complex_col": "technical_text",  # the abstract
         "simple_col": "plain_text",       # the plain-english lay summary
+        "trust_remote_code": True,        # ships a loading script -> needs datasets<4 + this flag
         "note": "CLEAN: genuine plain-english lay summaries of biomedical abstracts",
     },
 }
@@ -197,10 +198,11 @@ def load_pairs(name=None, split="train", n=None):
     from datasets import load_dataset
 
     spec = DATASETS[name or DATASET]
+    kw = {"trust_remote_code": True} if spec.get("trust_remote_code") else {}
     ds = (
-        load_dataset(spec["hf"], spec["config"])
+        load_dataset(spec["hf"], spec["config"], **kw)
         if spec["config"]
-        else load_dataset(spec["hf"])
+        else load_dataset(spec["hf"], **kw)
     )[split]
     cc, sc = spec["complex_col"], spec["simple_col"]
     ds = ds.map(lambda ex: {"complex": ex[cc], "simple": ex[sc]})
