@@ -138,9 +138,10 @@ def main():
     report = "\n".join(lines)
     print("\n" + report)
     os.makedirs(C.RESULTS, exist_ok=True)
-    with open(os.path.join(C.RESULTS, "patch_nnsight.txt"), "w", encoding="utf-8") as fh:
+    _out = C.result_path("patch_nnsight")
+    with open(_out, "w", encoding="utf-8") as fh:
         fh.write(report + "\n")
-    print(f"\n[saved] {os.path.join(C.RESULTS, 'patch_nnsight.txt')}")
+    print(f"\n[saved] {_out}")
 
 
 if __name__ == "__main__":

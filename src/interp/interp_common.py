@@ -28,18 +28,62 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 RESULTS = os.path.join(REPO, "results", "interp")
 
+# --- dataset registry -----------------------------------------------------------------------
+# Two simplification datasets, SAME task shape (technical paragraph -> plain paragraph) but very
+# different target quality. This is what makes the "fix" story possible: train on each, compare.
+#   med    = the TRAP. Its 'plain' answers are grade-13 Cochrane review summaries (HARDER than the
+#            input), so maximizing ROUGE against them taught register-capture, not simplification.
+#   scilay = the CLEAN one. paniniDot/sci_lay has genuine plain-English lay summaries of biomedical
+#            abstracts, so the target IS simpler than the source (verify with diagnose_dataset.py).
+DATASETS = {
+    "med": {
+        "hf": "lighteval/med_paragraph_simplification",
+        "config": None,
+        "eval_split": "validation",
+        "complex_col": "query",
+        "simple_col": "answer",
+        "note": "TRAP: 'plain' answers are grade-13 Cochrane review summaries (harder than input)",
+    },
+    "scilay": {
+        "hf": "paniniDot/sci_lay",
+        "config": "all",                 # default config; loads all journals
+        "eval_split": "validation",
+        "complex_col": "technical_text",  # the abstract
+        "simple_col": "plain_text",       # the plain-english lay summary
+        "note": "CLEAN: genuine plain-english lay summaries of biomedical abstracts",
+    },
+}
+# Which dataset this run targets. The runner exports LUCIDRT_DATASET; defaults to the trap set so
+# every existing script behaves exactly as before.
+DATASET = os.environ.get("LUCIDRT_DATASET", "med")
+if DATASET not in DATASETS:
+    raise ValueError(f"LUCIDRT_DATASET={DATASET!r} not in {list(DATASETS)}")
+
 # Persistent adapter location. HOME survives cluster jobs; override via env if you like.
-ADAPTER_DIR = os.environ.get(
+# Each dataset gets its OWN adapter dir so the trap and clean fine-tunes never clobber each other.
+# med stays at the original path (already trained & persisted); scilay -> '<base>-scilay'.
+_ADAPTER_BASE = os.environ.get(
     "LUCIDRT_ADAPTER_DIR", os.path.join(os.path.expanduser("~"), "lucidrt-lora")
 )
+ADAPTER_DIR = _ADAPTER_BASE if DATASET == "med" else f"{_ADAPTER_BASE}-{DATASET}"
+
+
+def result_path(stem):
+    """Path under results/interp for an output file, suffixed by dataset so a clean-set re-run
+    (e.g. patch_nnsight on scilay) doesn't overwrite the trap-set results. med keeps bare names."""
+    name = stem if DATASET == "med" else f"{stem}__{DATASET}"
+    return os.path.join(RESULTS, f"{name}.txt")
+
 
 PROMPT_TEMPLATE = (
     "Simplify the following medical text into plain language a patient can understand.\n\n"
     "Medical text:\n{technical}\n\nPlain language:\n"
 )
 
-# In-domain (medical) probes. Same 3 the notebook uses, so the behavioral read and the
-# activation analyses later are on identical inputs.
+# In-domain (medical) probes. The first 3 are the notebook's originals (kept first so older
+# results stay comparable); the rest widen the set to ~15 so the interp claims ("the register-
+# switch peaks at layer 20") rest on enough diverging prompts to be more than anecdote. All are
+# the same clinical-abstract register the model was fine-tuned on.
 EVAL_SAMPLES = [
     "Two trials met the inclusion criteria. Both were small, reported results inadequately, "
     "and were of low methodological quality, giving very-low certainty evidence.",
@@ -47,6 +91,30 @@ EVAL_SAMPLES = [
     "pressure relative to placebo at twelve weeks (p < 0.05).",
     "Participants received topical application weekly for six weeks; the primary endpoint was "
     "complete wound epithelialization at follow-up.",
+    "A total of 312 patients were randomised to receive either the study drug or matching "
+    "placebo, stratified by baseline disease severity and recruiting centre.",
+    "The pooled analysis demonstrated a modest but non-significant increase in adverse events "
+    "in the treatment arm, driven predominantly by gastrointestinal complaints.",
+    "Median progression-free survival was 9.4 months in the experimental group compared with "
+    "6.1 months in controls (hazard ratio 0.68, 95% confidence interval 0.52 to 0.89).",
+    "No eligible randomised controlled trials were identified; the review therefore reports on "
+    "observational evidence, which is at serious risk of confounding.",
+    "Adherence to the inhaled corticosteroid regimen was assessed using pharmacy refill records "
+    "and was found to be suboptimal in roughly a third of participants.",
+    "The meta-analysis included eight studies with substantial statistical heterogeneity "
+    "(I-squared 74%), limiting the interpretability of the pooled effect estimate.",
+    "Cognitive behavioural therapy delivered over ten weekly sessions produced a clinically "
+    "meaningful reduction in anxiety scores that was sustained at six-month follow-up.",
+    "Serum creatinine and estimated glomerular filtration rate were monitored at baseline, week "
+    "four, and week twelve to detect any decline in renal function.",
+    "The device failed to meet its prespecified non-inferiority margin for the primary composite "
+    "endpoint of death, myocardial infarction, or target-vessel revascularisation.",
+    "Breastfed infants in the supplemented cohort showed higher mean weight-for-age z-scores, "
+    "although the difference did not reach statistical significance.",
+    "Authors concluded that the evidence was insufficient to recommend routine screening in "
+    "asymptomatic adults and called for adequately powered trials.",
+    "Postoperative pain was managed with a multimodal analgesia protocol combining paracetamol, "
+    "a nonsteroidal anti-inflammatory, and as-needed opioid rescue medication.",
 ]
 
 _TOK = None
@@ -122,8 +190,25 @@ def generate(model, technical, max_new_tokens=160):
     return tok.decode(gen_ids, skip_special_tokens=True).strip()
 
 
+def load_pairs(name=None, split="train", n=None):
+    """Load any registered simplification dataset and NORMALISE it to two columns:
+    'complex' (the technical source) and 'simple' (the plain-language target). This is what lets
+    train/eval code run unchanged across the trap ('med') and clean ('scilay') datasets."""
+    from datasets import load_dataset
+
+    spec = DATASETS[name or DATASET]
+    ds = (
+        load_dataset(spec["hf"], spec["config"])
+        if spec["config"]
+        else load_dataset(spec["hf"])
+    )[split]
+    cc, sc = spec["complex_col"], spec["simple_col"]
+    ds = ds.map(lambda ex: {"complex": ex[cc], "simple": ex[sc]})
+    return ds.select(range(min(n, len(ds)))) if n else ds
+
+
 def load_med_split(split="train", n=None):
-    """lighteval/med_paragraph_simplification: row = {query: technical, answer: plain}."""
+    """Back-compat shim: the trap dataset with its ORIGINAL column names {query, answer}."""
     from datasets import load_dataset
 
     ds = load_dataset("lighteval/med_paragraph_simplification")[split]

@@ -43,19 +43,19 @@ def generate_both(samples, max_new_tokens):
 
 
 def dataset_diagnostic(lines, n=100, show=3):
-    ds = C.load_med_split("train", n=n)
-    q = statistics.mean(fk_grade(ex["query"]) for ex in ds)
-    a = statistics.mean(fk_grade(ex["answer"]) for ex in ds)
+    ds = C.load_pairs(split="train", n=n)
+    q = statistics.mean(fk_grade(ex["complex"]) for ex in ds)
+    a = statistics.mean(fk_grade(ex["simple"]) for ex in ds)
     lines.append("\n" + "=" * 90)
-    lines.append(f"DATASET (n={len(ds)})  mean FK grade  |  technical INPUT {q:.1f}  ->  "
-                 f"reference 'plain' ANSWER {a:.1f}")
+    lines.append(f"DATASET {C.DATASET!r} (n={len(ds)})  mean FK grade  |  technical INPUT {q:.1f}  ->  "
+                 f"reference 'plain' ANSWER {a:.1f}  (delta {a - q:+.1f})")
     lines.append("If the 'plain' answers are themselves ~grade 11-12 review summaries, matching "
                  "them raises\nboth ROUGE and reading grade — the fine-tune learned the register, "
-                 "not 'make it simpler'.")
+                 "not 'make it simpler'. A NEGATIVE delta means the targets really are simpler.")
     for ex in ds.select(range(show)):
         lines.append("-" * 90)
-        lines.append(f"  QUERY : {ex['query'][:260]}")
-        lines.append(f"  ANSWER: {ex['answer'][:260]}")
+        lines.append(f"  SOURCE: {ex['complex'][:260]}")
+        lines.append(f"  TARGET: {ex['simple'][:260]}")
 
 
 def main():
@@ -98,7 +98,7 @@ def main():
     print("\n" + report)
 
     os.makedirs(C.RESULTS, exist_ok=True)
-    out_path = os.path.join(C.RESULTS, "behavioral_eval.txt")
+    out_path = C.result_path("behavioral_eval")
     with open(out_path, "w", encoding="utf-8") as fh:
         fh.write(report + "\n")
     print(f"\n[saved] {out_path}")

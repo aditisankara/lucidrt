@@ -35,7 +35,7 @@ class MedSimplifyDataset(Dataset):
 
     def __getitem__(self, idx):
         ex = self.data[idx]
-        text = C.PROMPT_TEMPLATE.format(technical=ex["query"]) + ex["answer"] + self.tok.eos_token
+        text = C.PROMPT_TEMPLATE.format(technical=ex["complex"]) + ex["simple"] + self.tok.eos_token
         enc = self.tok(text, truncation=True, max_length=MAX_LEN)
         return {
             "input_ids": torch.tensor(enc["input_ids"]),
@@ -64,14 +64,14 @@ def make_labels(input_ids, attn):
 
 
 def train(adapter_dir, steps, batch_size, lr):
-    from datasets import load_dataset
     from peft import LoraConfig, get_peft_model
     from transformers import AutoModelForCausalLM
 
     tok = C.tokenizer()
-    raw = load_dataset("lighteval/med_paragraph_simplification")
+    train_split = C.load_pairs(split="train")   # normalised to {complex, simple}; honours LUCIDRT_DATASET
+    print(f"dataset: {C.DATASET} ({C.DATASETS[C.DATASET]['hf']}) | train rows: {len(train_split)}", flush=True)
     train_dl = DataLoader(
-        MedSimplifyDataset(raw["train"], tok),
+        MedSimplifyDataset(train_split, tok),
         batch_size=batch_size,
         shuffle=True,
         collate_fn=PadCollator(tok.pad_token_id),
