@@ -45,35 +45,38 @@ pip install --no-cache-dir \
 python -c "import torch; print('cuda ok:', torch.cuda.is_available(), torch.cuda.get_device_name(0))"
 
 # --- stages --------------------------------------------------------------------------------
-if [ "$STAGE" = "train" ] || [ "$STAGE" = "all" ]; then
+# 'arc' = the whole per-dataset run (train -> behavioral -> scoreboard -> all 3 probes) in ONE
+# job, so the heavy /tmp venv is built once. 'all' is the older train+evals set (no probes).
+if [ "$STAGE" = "train" ] || [ "$STAGE" = "all" ] || [ "$STAGE" = "arc" ]; then
     python "$REPO/src/interp/train_adapter.py"            # idempotent: skips if adapter exists
 fi
-if [ "$STAGE" = "behavioral" ] || [ "$STAGE" = "all" ]; then
+if [ "$STAGE" = "behavioral" ] || [ "$STAGE" = "all" ] || [ "$STAGE" = "arc" ]; then
     python "$REPO/src/interp/behavioral_eval.py" | tee "$HOME/out/behavioral_eval_$LUCIDRT_DATASET.txt"
 fi
 if [ "$STAGE" = "diagnose" ] || [ "$STAGE" = "all" ]; then
     # GPU-free: proves which dataset's 'plain' targets are actually simpler (source->target FK delta)
     python "$REPO/src/interp/diagnose_dataset.py" | tee "$HOME/out/dataset_diagnostic.txt"
 fi
-if [ "$STAGE" = "scoreboard" ] || [ "$STAGE" = "all" ]; then
+if [ "$STAGE" = "scoreboard" ] || [ "$STAGE" = "all" ] || [ "$STAGE" = "arc" ]; then
     pip install --no-cache-dir evaluate rouge_score   # ROUGE lives here, not in the base install
     python "$REPO/src/interp/scoreboard.py" | tee "$HOME/out/scoreboard_$LUCIDRT_DATASET.txt"
 fi
 
 # --- mech-interp stages (need the adapter already trained; installs are per-stage so one
-#     library's install trouble can't break the other) --------------------------------------
-if [ "$STAGE" = "patch" ] || [ "$STAGE" = "mechinterp" ]; then
+#     library's install trouble can't break the other). ~/out copies are dataset-suffixed so a
+#     scilay run never overwrites the med results sitting in ~/out. ------------------------------
+if [ "$STAGE" = "patch" ] || [ "$STAGE" = "mechinterp" ] || [ "$STAGE" = "arc" ]; then
     pip install --no-cache-dir nnsight
     pip freeze | grep -iE "^(torch|transformers|nnsight|accelerate|peft)==" | tee "$HOME/out/patch_freeze.txt"
-    python "$REPO/src/interp/patch_nnsight.py" | tee "$HOME/out/patch_nnsight.txt"
+    python "$REPO/src/interp/patch_nnsight.py" | tee "$HOME/out/patch_nnsight_$LUCIDRT_DATASET.txt"
 fi
-if [ "$STAGE" = "logitlens" ] || [ "$STAGE" = "mechinterp" ]; then
+if [ "$STAGE" = "logitlens" ] || [ "$STAGE" = "mechinterp" ] || [ "$STAGE" = "arc" ]; then
     pip install --no-cache-dir nnsight   # fast nnsight-based logit lens (replaces the slow TransformerLens probe)
-    python "$REPO/src/interp/logit_lens_nnsight.py" | tee "$HOME/out/logit_lens.txt"
+    python "$REPO/src/interp/logit_lens_nnsight.py" | tee "$HOME/out/logit_lens_$LUCIDRT_DATASET.txt"
 fi
-if [ "$STAGE" = "attnpatch" ] || [ "$STAGE" = "mechinterp" ]; then
+if [ "$STAGE" = "attnpatch" ] || [ "$STAGE" = "mechinterp" ] || [ "$STAGE" = "arc" ]; then
     pip install --no-cache-dir nnsight   # sublayer-resolved attention-output patching (ties to the attention-only LoRA)
-    python "$REPO/src/interp/attn_patch_nnsight.py" | tee "$HOME/out/attn_patch.txt"
+    python "$REPO/src/interp/attn_patch_nnsight.py" | tee "$HOME/out/attn_patch_$LUCIDRT_DATASET.txt"
 fi
 if [ "$STAGE" = "tlens" ]; then   # DEPRECATED: TransformerLens load is >10 min; use 'logitlens' instead
     pip install --no-cache-dir transformer_lens
