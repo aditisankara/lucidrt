@@ -29,12 +29,14 @@ REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 RESULTS = os.path.join(REPO, "results", "interp")
 
 # --- dataset registry -----------------------------------------------------------------------
-# Two simplification datasets, SAME task shape (technical paragraph -> plain paragraph) but very
+# Simplification datasets, SAME task shape (technical paragraph -> plain paragraph) but very
 # different target quality. This is what makes the "fix" story possible: train on each, compare.
-#   med    = the TRAP. Its 'plain' answers are grade-13 Cochrane review summaries (HARDER than the
+#   med    = a TRAP. Its 'plain' answers are grade-13 Cochrane review summaries (HARDER than the
 #            input), so maximizing ROUGE against them taught register-capture, not simplification.
-#   scilay = the CLEAN one. paniniDot/sci_lay has genuine plain-English lay summaries of biomedical
-#            abstracts, so the target IS simpler than the source (verify with diagnose_dataset.py).
+#   scilay = a SECOND trap, caught only after training it. Its lay summaries ARE simpler than the
+#            abstract (delta<0) but still grade ~16 in absolute terms -> fine-tuning made the model
+#            WORSE. The lesson: relative delta is itself a Goodharted proxy; gate on ABSOLUTE grade.
+#   wiki   = the genuinely-plain CANDIDATE for the positive case (vet with diagnose_dataset.py).
 DATASETS = {
     "med": {
         "hf": "lighteval/med_paragraph_simplification",
@@ -51,7 +53,24 @@ DATASETS = {
         "complex_col": "technical_text",  # the abstract
         "simple_col": "plain_text",       # the plain-english lay summary
         "trust_remote_code": True,        # ships a loading script -> needs datasets<4 + this flag
-        "note": "CLEAN: genuine plain-english lay summaries of biomedical abstracts",
+        # NOT clean after all: targets are grade ~16 (simpler than the grade-17 abstract, but still
+        # nowhere near plain). Fine-tuning on it WORSENED readability (grade 8.6 -> 14.2) = a 2nd trap.
+        "note": "TRAP (absolute): lay summaries are simpler than the abstract but still grade ~16",
+    },
+    # A genuinely-plain CANDIDATE for the positive case (fine-tune should HELP): general-domain
+    # Wikipedia -> Simple-English-Wikipedia simplification. Its targets are written in plain English
+    # (low ABSOLUTE grade), unlike the two biomedical sets whose 'plain' targets are still grade 14-16.
+    # Domain shifts away from medicine on purpose — genuinely plain biomedical targets basically don't
+    # exist, which is itself why models Goodhart on med/scilay. VET FIRST: run the (now absolute-gated)
+    # diagnose stage and confirm BOTH delta<0 AND abs target grade < ~10 before spending a train slot.
+    "wiki": {
+        "hf": "GEM/wiki_auto_asset_turk",
+        "config": None,
+        "eval_split": "validation",
+        "complex_col": "source",
+        "simple_col": "target",
+        "trust_remote_code": True,
+        "note": "CANDIDATE plain set (Wiki->Simple-Wiki); vet with diagnose before training",
     },
 }
 # Which dataset this run targets. The runner exports LUCIDRT_DATASET; defaults to the trap set so

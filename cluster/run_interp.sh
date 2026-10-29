@@ -29,10 +29,14 @@ export HF_HOME="$WORK/hf"                        # ~3GB model download to /tmp, 
 # The adapter is the ONE thing we persist across jobs — 20 MB, fits the home quota.
 # interp_common derives the real dir from this base + the dataset (med -> as-is, scilay -> '-scilay').
 export LUCIDRT_ADAPTER_DIR="$HOME/lucidrt-lora"
+# The REAL adapter dir interp_common derives: med keeps the base path; every other dataset gets a
+# '-<dataset>' suffix so the fine-tunes never clobber each other. Mirror that here for honest logs.
+if [ "$LUCIDRT_DATASET" = "med" ]; then ADAPTER_REAL="$LUCIDRT_ADAPTER_DIR"
+else ADAPTER_REAL="$LUCIDRT_ADAPTER_DIR-$LUCIDRT_DATASET"; fi
 
 echo "=== GPU ==="
 nvidia-smi --query-gpu=name,compute_cap,memory.free --format=csv
-echo "repo=$REPO  work=$WORK  stage=$STAGE  dataset=$LUCIDRT_DATASET  adapter_base=$LUCIDRT_ADAPTER_DIR"
+echo "repo=$REPO  work=$WORK  stage=$STAGE  dataset=$LUCIDRT_DATASET  adapter=$ADAPTER_REAL"
 
 # --- env: system python 3.12 + venv in /tmp; cu126 torch for sm_70+ compatibility ---
 /usr/bin/python3.12 -m venv "$WORK/venv"
@@ -86,4 +90,4 @@ if [ "$STAGE" = "tlens" ]; then   # DEPRECATED: TransformerLens load is >10 min;
     python "$REPO/src/interp/explore_tlens.py" | tee "$HOME/out/tlens_base.txt"
 fi
 
-echo "=== done. adapter in $LUCIDRT_ADAPTER_DIR ; results in $REPO/results/interp (+ ~/out) ==="
+echo "=== done. adapter in $ADAPTER_REAL ; results in $REPO/results/interp (+ ~/out) ==="
