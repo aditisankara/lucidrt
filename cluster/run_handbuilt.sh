@@ -1,6 +1,6 @@
 #!/bin/bash
 # Hand-built pipeline benchmark on the SAME A100 as vLLM, to isolate engine vs hardware.
-# Lightweight env: just torch (cu126, works on any SoC GPU) + transformers. No vLLM.
+# Lightweight env: just torch (cu126, works on any CUDA GPU) + transformers. No vLLM.
 set -e
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"

@@ -19,15 +19,14 @@ the loop**: a fix that fails twice, teaches the lesson, and finally makes the me
 
 ## Why this project exists
 
-It carries three signals in one repo:
+It covers two halves of shipping a fine-tuned model end to end:
 
-1. **ML / training** — fine-tune a current LLM with LoRA in PyTorch, with a real loss curve
-   and a quality metric.
-2. **ML systems / inference engineering** — KV caching, quantization, dynamic batching,
-   prefill/decode profiling, and a rigorous benchmark report that isolates *one variable at
-   a time*.
-3. **Interpretability** — not just *that* a metric moved, but *why*: catching a Goodharted
-   metric and causally localizing the behavior change to a specific part of the network.
+1. **Build & optimize** — fine-tune a current LLM with LoRA, then make inference fast and
+   measure every gain one variable at a time: KV caching, quantization, batching, prefill/decode
+   profiling, and a same-hardware benchmark against vLLM.
+2. **Evaluate & fix** — build the eval and data-screening tooling that caught the fine-tune's
+   flattering metric lying, trace the regression to its root cause, and fix it — confirming the
+   failure is gone.
 
 The theme throughout: don't just make it work — **optimize each step, measure it against a
 baseline, and keep the honest trade-offs** (including the "optimization" that made things
@@ -38,8 +37,8 @@ worse — the sharpest example of which is the fine-tune's own headline number).
 ## Headline results
 
 Model **Qwen2.5-1.5B-Instruct**; task: plain-language medical simplification. Training/opt
-numbers come from several GPU sessions (Colab T4 + NUS SoC cluster), so treat latency as
-**directional** — except the vLLM section below, which is a single-machine A100 run.
+numbers come from several GPU sessions on mixed hardware, so treat latency as **directional** —
+except the vLLM section below, which is a single-machine A100 run.
 
 | Area | Result |
 |---|---|
@@ -93,17 +92,16 @@ no padding waste and no ragged finishes. vLLM's **continuous batching + PagedAtt
 deliberately doesn't stress. Knowing *when* an engine wins — not just that it does — is the
 point of the exercise.
 
-### War story: getting vLLM to run on the cluster
+### War story: getting vLLM to run on an older-CUDA GPU box
 
 Most of the capstone's time went not into the benchmark but into making vLLM start *at all* on
-a shared academic cluster with an old CUDA toolkit. Each fix is a lesson in the dependency
-reality of modern inference:
+a machine with an old CUDA toolkit. Each fix is a lesson in the dependency reality of modern
+inference:
 
-- **Compute capability.** vLLM needs CC ≥ 7.0, and the cluster's default "nv" partition hands
-  out TITAN V cards (CC **7.0** — borderline, and it errored). Had to specifically request an
-  **A100-40 (CC 8.0)** via `--gres=gpu:a100-40:1`.
+- **Compute capability.** vLLM needs CC ≥ 7.0, and older Volta cards (TITAN V, CC **7.0**) sit
+  right on the edge and errored — so the runs target an **A100 (CC 8.0)**.
 - **FlashInfer JIT.** The latest vLLM hard-requires FlashInfer, which JIT-compiles against the
-  node's ancient `nvcc` and dies on an unknown `--compress-mode` flag. Fix: pin
+  box's ancient `nvcc` and dies on an unknown `--compress-mode` flag. Fix: pin
   **`vllm==0.6.3.post1`**, which uses the v0 engine with *prebuilt* FlashAttention kernels — no
   JIT, no toolkit dependency.
 - **numpy ABI clash.** `datasets`' pyarrow pulls `numpy>=2`, which clashes with vLLM 0.6.x's
@@ -112,12 +110,11 @@ reality of modern inference:
 - **transformers version.** Latest `transformers` (5.x) wants `torch>=2.6` and changed the
   tokenizer API, breaking this vLLM. Pinned **`transformers==4.46.3`**.
 - **Host-RAM OOM.** vLLM reserves CPU blocks for KV-cache swap and got OOM-killed at the default
-  memory allocation. Fix: **`--mem=48G`**.
+  allocation — it needs a generous host-RAM budget.
 - **Isolation.** vLLM pins its own torch build, so it lives in a **separate venv** from the
-  notebook environment — never reuse the training env for the serving engine.
+  training environment — never reuse the training env for the serving engine.
 
-All of this is encoded in [`cluster/run_vllm.sh`](cluster/run_vllm.sh) /
-[`cluster/run_vllm.sbatch`](cluster/run_vllm.sbatch) so the run is reproducible.
+All of this is encoded in [`cluster/run_vllm.sh`](cluster/run_vllm.sh) so the run is reproducible.
 
 ---
 
@@ -268,8 +265,7 @@ lucidrt/
       logit_lens_nnsight.py     # per-layer logit lens (base vs fine-tuned trajectory)
     notebooks/
       lucidrt_data_pipeline.ipynb  # the main notebook: fine-tune → KV cache → quant → batching → eval
-  cluster/
-    run_soc.sh / run_soc.sbatch       # training / notebook env on the NUS SoC cluster
+  cluster/                          # thin batch-scheduler wrappers around the src/ entry points
     run_handbuilt.sh / .sbatch        # hand-built benchmark on an A100
     run_vllm.sh / .sbatch             # vLLM benchmark on the SAME A100 (see war story)
     run_interp.sh / .sbatch           # interp stages: diagnose | train | behavioral | scoreboard | patch | logitlens | attnpatch | arc (all, per dataset)
@@ -283,21 +279,20 @@ lucidrt/
 
 ## Running it
 
-**The notebook** (fine-tune + all the inference optimizations) runs on free Colab (T4) or the
-cluster's training env:
+**The notebook** (fine-tune + all the inference optimizations) runs on any CUDA GPU — a free
+Colab T4 is enough.
+
+**The same-hardware engine comparison** — both entry points target one A100 so the numbers are
+comparable (the `cluster/` scripts wrap them for a batch scheduler, but the Python is runnable
+directly):
 
 ```bash
-# cluster training/notebook env
-bash cluster/run_soc.sh
+python src/bench_handbuilt.py   # hand-built KV-cache + static-batching pipeline
+python src/bench_vllm.py        # vLLM, in its own venv (see war story)
 ```
 
-**The same-hardware engine comparison** — both scripts target one A100 so the numbers are
-comparable:
-
-```bash
-sbatch cluster/run_handbuilt.sbatch   # hand-built pipeline  -> ~/out/handbuilt_bench.txt
-sbatch cluster/run_vllm.sbatch        # vLLM, separate venv  -> ~/out/vllm_bench.txt
-```
+**The fine-tune + evaluation arc** (train an adapter, score it, run the diagnostics) is driven by
+`cluster/run_interp.sh <stage> <dataset>` — stages `diagnose | train | behavioral | scoreboard | arc`.
 
 ---
 

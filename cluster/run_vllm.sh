@@ -1,5 +1,5 @@
 #!/bin/bash
-# vLLM capstone benchmark on the SoC cluster. SEPARATE venv (vLLM pins its own torch,
+# vLLM capstone benchmark (GPU batch job). SEPARATE venv (vLLM pins its own torch,
 # so don't reuse the notebook env). Run inside a GPU session, or via run_vllm.sbatch.
 #   srun --partition=gpu --gpus=1 --time=01:00:00 --pty bash
 #   cd ~/lucidrt && bash cluster/run_vllm.sh

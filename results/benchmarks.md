@@ -1,8 +1,8 @@
 # LucidRT — benchmark results
 
 Model: **Qwen2.5-1.5B-Instruct** · Task: plain-language medical text simplification
-(`lighteval/med_paragraph_simplification`). Numbers come from several GPU sessions
-(Colab T4 + NUS SoC TITAN V), so latency/throughput are **directional**, not single-machine.
+(`lighteval/med_paragraph_simplification`). Numbers come from several GPU sessions on mixed
+hardware (a Colab T4 and an older Volta card), so latency/throughput are **directional**, not single-machine.
 Quality numbers are all from one clean same-session run.
 
 ## Fine-tuning (LoRA)

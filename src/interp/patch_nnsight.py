@@ -20,10 +20,9 @@ of the divergence, not the whole multi-token hallucination (a later, multi-posit
 Memory-safe: FT runs first and its activations are cached to CPU, then FT is freed and BASE is
 loaded — never both on the GPU at once.
 
-NOTE ON VERSIONS: written for nnsight 0.8.x + transformers 5.x (verified on the SoC cluster via
-src/interp/probe_nnsight.py). Key 0.8 facts the code depends on are documented at the helpers below:
-a decoder layer's .output is a bare batched tensor, and any list that collects saved values must be
-declared BEFORE the trace block. If a future version drifts, re-run probe_nnsight.py to re-confirm.
+NOTE ON VERSIONS: written for nnsight 0.8.x + transformers 5.x. Key 0.8 facts the code depends on
+are documented at the helpers below: a decoder layer's .output is a bare batched tensor, and any
+list that collects saved values must be declared BEFORE the trace block.
 
 Run:  python src/interp/patch_nnsight.py        (GPU node; adapter must already be trained)
 """
@@ -37,7 +36,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import interp_common as C  # noqa: E402
 
 
-# nnsight 0.8 notes (verified on this cluster via src/interp/probe_nnsight.py):
+# nnsight 0.8 notes (hard-won, verified against nnsight 0.8.x + transformers 5.x):
 #   - A transformers-5.x decoder layer's .output is a BARE tensor [batch, seq, hidden] (no tuple),
 #     and lm_head.output is [batch, seq, vocab]; the last prompt token is [0, -1, :].
 #   - nnsight runs the `with model.trace()` body via exec() in its own locals, so a name BOUND

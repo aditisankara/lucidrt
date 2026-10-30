@@ -1,18 +1,17 @@
 #!/bin/bash
-# NUS SoC cluster — fine-tune interpretability runner.
-# Builds a throwaway /tmp venv (cu126 torch works on ANY SoC GPU), trains the LoRA adapter
+# Fine-tune interpretability runner (GPU batch job).
+# Builds a throwaway /tmp venv (cu126 torch works on any CUDA GPU), trains the LoRA adapter
 # ONCE into persistent HOME, then runs the requested analysis stage(s).
 #
-# Usage (interactive — recommended first time):
-#   ssh -J aditisan@stujump.comp.nus.edu.sg aditisan@xlogin.comp.nus.edu.sg
-#   srun --partition=gpu --gpus=1 --time=02:00:00 --pty bash
-#   cd ~/lucidrt && bash cluster/run_interp.sh            # = train (if needed) + behavioral
-#   cd ~/lucidrt && bash cluster/run_interp.sh behavioral # just re-run the eval (no retrain)
+# Usage:
+#   bash cluster/run_interp.sh                   # = train (if needed) + behavioral
+#   bash cluster/run_interp.sh behavioral        # just re-run the eval (no retrain)
+#   bash cluster/run_interp.sh arc wiki          # whole arc on one dataset
 #
-# Or unattended:  sbatch cluster/run_interp.sbatch [stage]
+# Or unattended via a batch scheduler:  sbatch cluster/run_interp.sbatch [stage] [dataset]
 set -eo pipefail   # pipefail: a crash in `python ... | tee` must fail the job, not be hidden by tee's exit 0
 
-STAGE="${1:-all}"                               # train|behavioral|scoreboard|diagnose|all|patch|logitlens|attnpatch|mechinterp|tlens
+STAGE="${1:-all}"                               # train|behavioral|scoreboard|diagnose|all|patch|logitlens|attnpatch|mechinterp|arc
 # 2nd arg (or $LUCIDRT_DATASET) picks the dataset: 'med' (the trap) or 'scilay' (the clean one).
 # It flows to every script via the env var below, and each dataset keeps its OWN adapter + result
 # files, so you can run the whole arc on 'scilay' without touching the original 'med' results:
@@ -84,10 +83,6 @@ fi
 if [ "$STAGE" = "attnpatch" ] || [ "$STAGE" = "mechinterp" ] || [ "$STAGE" = "arc" ]; then
     pip install --no-cache-dir nnsight   # sublayer-resolved attention-output patching (ties to the attention-only LoRA)
     python "$REPO/src/interp/attn_patch_nnsight.py" | tee "$HOME/out/attn_patch_$LUCIDRT_DATASET.txt"
-fi
-if [ "$STAGE" = "tlens" ]; then   # DEPRECATED: TransformerLens load is >10 min; use 'logitlens' instead
-    pip install --no-cache-dir transformer_lens
-    python "$REPO/src/interp/explore_tlens.py" | tee "$HOME/out/tlens_base.txt"
 fi
 
 echo "=== done. adapter in $ADAPTER_REAL ; results in $REPO/results/interp (+ ~/out) ==="
