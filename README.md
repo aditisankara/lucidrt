@@ -92,30 +92,6 @@ no padding waste and no ragged finishes. vLLM's **continuous batching + PagedAtt
 deliberately doesn't stress. Knowing *when* an engine wins — not just that it does — is the
 point of the exercise.
 
-### War story: getting vLLM to run on an older-CUDA GPU box
-
-Most of the capstone's time went not into the benchmark but into making vLLM start *at all* on
-a machine with an old CUDA toolkit. Each fix is a lesson in the dependency reality of modern
-inference:
-
-- **Compute capability.** vLLM needs CC ≥ 7.0, and older Volta cards (TITAN V, CC **7.0**) sit
-  right on the edge and errored — so the runs target an **A100 (CC 8.0)**.
-- **FlashInfer JIT.** The latest vLLM hard-requires FlashInfer, which JIT-compiles against the
-  box's ancient `nvcc` and dies on an unknown `--compress-mode` flag. Fix: pin
-  **`vllm==0.6.3.post1`**, which uses the v0 engine with *prebuilt* FlashAttention kernels — no
-  JIT, no toolkit dependency.
-- **numpy ABI clash.** `datasets`' pyarrow pulls `numpy>=2`, which clashes with vLLM 0.6.x's
-  `numpy 1.26`. Fix: drop the dependency entirely and **hardcode the benchmark prompt** (a real
-  example from the dataset).
-- **transformers version.** Latest `transformers` (5.x) wants `torch>=2.6` and changed the
-  tokenizer API, breaking this vLLM. Pinned **`transformers==4.46.3`**.
-- **Host-RAM OOM.** vLLM reserves CPU blocks for KV-cache swap and got OOM-killed at the default
-  allocation — it needs a generous host-RAM budget.
-- **Isolation.** vLLM pins its own torch build, so it lives in a **separate venv** from the
-  training environment — never reuse the training env for the serving engine.
-
-All of this is encoded in [`cluster/run_vllm.sh`](cluster/run_vllm.sh) so the run is reproducible.
-
 ---
 
 ## What did the fine-tune actually change? (an interpretability pass)
@@ -267,7 +243,7 @@ lucidrt/
       lucidrt_data_pipeline.ipynb  # the main notebook: fine-tune → KV cache → quant → batching → eval
   cluster/                          # thin batch-scheduler wrappers around the src/ entry points
     run_handbuilt.sh / .sbatch        # hand-built benchmark on an A100
-    run_vllm.sh / .sbatch             # vLLM benchmark on the SAME A100 (see war story)
+    run_vllm.sh / .sbatch             # vLLM benchmark on the SAME A100
     run_interp.sh / .sbatch           # interp stages: diagnose | train | behavioral | scoreboard | patch | logitlens | attnpatch | arc (all, per dataset)
   results/
     benchmarks.md               # full benchmark tables + takeaways
@@ -288,7 +264,7 @@ directly):
 
 ```bash
 python src/bench_handbuilt.py   # hand-built KV-cache + static-batching pipeline
-python src/bench_vllm.py        # vLLM, in its own venv (see war story)
+python src/bench_vllm.py        # vLLM, in its own venv (it pins its own torch build)
 ```
 
 **The fine-tune + evaluation arc** (train an adapter, score it, run the diagnostics) is driven by
