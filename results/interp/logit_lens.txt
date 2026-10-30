@@ -1,0 +1,102 @@
+========================================================================
+LOGIT LENS  (per-layer last-token prediction: base vs fine-tuned)
+========================================================================
+
+PROMPT 1: Two trials met the inclusion criteria. Both were small, repo...
+  final token   base='Two'  ft='We'   (DIVERGE)
+  emerges @layer base=20  ft=26
+  layer |         base top |           ft top
+      0 |              'r' |              ' '
+      1 |              ' ' |           '\xa0'
+      2 |              ' ' |           '\xa0'
+      3 |              's' |           '\xa0'
+      4 |              's' |           '\xa0'
+      5 |              's' |              's'
+      6 |              ' ' |              's'
+      7 |              's' |              's'
+      8 |              's' |             '``'
+      9 |              ' ' |   ' Description'
+     10 |            'Put' |              ' '
+     11 |             ' "' |              ' '
+     12 |              ' ' |              ' '
+     13 |              't' |              ' '
+     14 |              't' |              ' '
+     15 |             ' "' |              ' '
+     16 |              ' ' |              ' '
+     17 |              's' |              '1'
+     18 |              's' |              '1'
+     19 |              's' |           'This'
+     20 |            'Two' |          'There'  <--
+     21 |            'Two' |            'Two'
+     22 |            'Two' |            'Two'
+     23 |            'Two' |            'Two'
+     24 |            'Two' |            'Two'
+     25 |            'Two' |            'Two'
+     26 |            'Two' |             'We'  <--
+     27 |            'Two' |             'We'
+
+PROMPT 2: The intervention group showed a statistically significant re...
+  final token   base='The'  ft='The'   (agree)
+  emerges @layer base=22  ft=27
+  layer |         base top |           ft top
+      0 |              'r' |              'r'
+      1 |              '-' |           '\xa0'
+      2 |              't' |              's'
+      3 |              's' |           '\xa0'
+      4 |              's' |              's'
+      5 |              's' |              's'
+      6 |              's' |              's'
+      7 |              's' |              's'
+      8 |              's' |              's'
+      9 |              ' ' |   ' Description'
+     10 |            'int' |              ' '
+     11 |             ' "' |              ' '
+     12 |              ' ' |              ' '
+     13 |              ' ' |              ' '
+     14 |              't' |              ' '
+     15 |              ' ' |              ' '
+     16 |              ' ' |              '1'
+     17 |              's' |              '1'
+     18 |              's' |           'This'
+     19 |           'When' |           'This'
+     20 |         'During' |          'Study'
+     21 |           ' The' |          ' This'
+     22 |            'The' |           'This'  <--
+     23 |            'The' |           'This'
+     24 |            'The' |           'This'
+     25 |            'The' |           'This'
+     26 |            'The' |           'This'
+     27 |            'The' |            'The'  <--
+
+PROMPT 3: Participants received topical application weekly for six wee...
+  final token   base='Participants'  ft='We'   (DIVERGE)
+  emerges @layer base=26  ft=27
+  layer |         base top |           ft top
+      0 |              'r' |              'r'
+      1 |              ' ' |              's'
+      2 |              's' |              's'
+      3 |              's' |           '\xa0'
+      4 |              's' |              's'
+      5 |              's' |              's'
+      6 |              's' |              's'
+      7 |              's' |              's'
+      8 |              's' |             '``'
+      9 |              ' ' |   ' Description'
+     10 |            'int' |   ' Description'
+     11 |              's' |   ' Description'
+     12 |              ' ' |              ' '
+     13 |              't' |              ' '
+     14 |              't' |              ' '
+     15 |              ' ' |              ' '
+     16 |              ' ' |              ' '
+     17 |              's' |          ' This'
+     18 |              's' |          ' This'
+     19 |           'When' |           'This'
+     20 |         'During' |         ' Study'
+     21 |          ' Okay' |         ' Study'
+     22 |            'The' |           'This'
+     23 |            'The' |           'This'
+     24 |            'The' |           'This'
+     25 |            'The' |           'This'
+     26 |   'Participants' |           'This'  <--
+     27 |   'Participants' |             'We'  <--

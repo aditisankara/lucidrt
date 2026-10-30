@@ -30,3 +30,4 @@ hf_cache/
 # cluster job logs
 *.out
 *.lucidrt.out
+tmp/

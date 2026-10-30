@@ -1,0 +1,53 @@
+========================================================================
+ATTENTION-OUTPUT PATCHING  (base <- fine-tuned self_attn output, per layer)
+========================================================================
+next-token divergence per prompt (base top  ->  FT top):
+            'Two'  ->  'The'            | Two trials met the inclusion criteria. Both were...
+            'The'  ->  'The'            | The intervention group showed a statistically si...
+   'Participants'  ->  'The'            | Participants received topical application weekly...
+              'A'  ->  'The'            | A total of 312 patients were randomised to recei...
+            'The'  ->  'The'            | The pooled analysis demonstrated a modest but no...
+             'In'  ->  'The'            | Median progression-free survival was 9.4 months ...
+          'There'  ->  'The'            | No eligible randomised controlled trials were id...
+            'The'  ->  'Ad'             | Adherence to the inhaled corticosteroid regimen ...
+            'The'  ->  'The'            | The meta-analysis included eight studies with su...
+              'C'  ->  'C'              | Cognitive behavioural therapy delivered over ten...
+            'The'  ->  'The'            | Serum creatinine and estimated glomerular filtra...
+            'The'  ->  'The'            | The device failed to meet its prespecified non-i...
+            'Inf'  ->  'Bre'            | Breastfed infants in the supplemented cohort sho...
+        'Authors'  ->  'The'            | Authors concluded that the evidence was insuffic...
+           'Post'  ->  'Post'           | Postoperative pain was managed with a multimodal...
+------------------------------------------------------------------------
+layer |  recovery | bar
+    0 |     0.018 | #
+    1 |     0.016 | #
+    2 |     0.021 | #
+    3 |     0.114 | #####
+    4 |    -0.026 | 
+    5 |    -0.020 | 
+    6 |    -0.048 | 
+    7 |     0.051 | ##
+    8 |    -0.024 | 
+    9 |    -0.062 | 
+   10 |    -0.004 | 
+   11 |    -0.054 | 
+   12 |     0.051 | ##
+   13 |    -0.028 | 
+   14 |     0.287 | ###########
+   15 |     0.324 | #############
+   16 |     0.026 | #
+   17 |     0.082 | ###
+   18 |    -0.265 | 
+   19 |    -0.043 | 
+   20 |    -0.223 | 
+   21 |     0.522 | #####################
+   22 |     0.196 | ########
+   23 |     0.174 | #######
+   24 |    -0.073 | 
+   25 |     0.908 | ####################################  <-- peak
+   26 |    -0.089 | 
+   27 |    -0.259 | 
+------------------------------------------------------------------------
+PEAK attention recovery at layer 25 (0.908). Unlike the residual
+patch this is NOT monotonic-by-construction, so this peak localizes which attention
+sublayer's change most drives the fine-tune's shift (the LoRA was attention-only).
