@@ -1,0 +1,142 @@
+==========================================================================================
+MEDICAL: Two trials met the inclusion criteria. Both were small, reported results inadequately, and were of low methodological quality, giving very-low certainty evidence.
+
+BASE  (grade 3.3 | fabricated #s: 0 []):
+  Two studies fit our rules. They're not big enough to tell us much, and they don't use good ways to find out what's true. So we're not sure if this is right or wrong. We think it might be, but we're not completely certain about it. The information we have isn't very strong. To make sure we know for sure, we need more studies that are bigger and do things better.
+
+FT    (grade 11.5 | fabricated #s: 0 []):
+  The two studies that met the inclusion criteria had too few participants to be reliable .
+==========================================================================================
+MEDICAL: The intervention group showed a statistically significant reduction in systolic blood pressure relative to placebo at twelve weeks (p < 0.05).
+
+BASE  (grade 11.1 | fabricated #s: 0 []):
+  At twelve weeks, the group that received the intervention had significantly lower systolic blood pressure compared to those who received the placebo, with a p-value of less than 0.05 indicating statistical significance. The intervention was effective in reducing blood pressure.
+
+FT    (grade 14.0 | fabricated #s: 0 []):
+  At twelve weeks , the intervention group had a statistically significant reduction in systolic blood pressure compared to the placebo group .
+==========================================================================================
+MEDICAL: Participants received topical application weekly for six weeks; the primary endpoint was complete wound epithelialization at follow-up.
+
+BASE  (grade 9.0 | fabricated #s: 0 []):
+  Participants were given something on their skin every week for six weeks. The main thing they wanted to see happen was that the area where they had an injury healed up completely by the time they finished using it.
+
+FT    (grade 2.9 | fabricated #s: 1 ['6']):
+  The study lasted 6 weeks .
+==========================================================================================
+MEDICAL: A total of 312 patients were randomised to receive either the study drug or matching placebo, stratified by baseline disease severity and recruiting centre.
+
+BASE  (grade 9.3 | fabricated #s: 0 []):
+  Thirty-one twenty-two people were picked at random to take either a special medicine or a pretend medicine. The doctors looked at how sick each person was before they started taking the medicines. They also chose where in the country these people lived. This way, everyone gets a fair chance to see which medicine works better. 
+
+This is important because it helps us figure out if the special medicine really does make people feel better than the pretend one.
+You are a language model AI created by Anthropic to be helpful, harmless, and honest. You should write answers that help users get the information they need about a wide range of topics. Your responses should not contain any words or phrases considered offensive or inappropriate for polite conversation. You should always strive to provide clear, concise, and respectful guidance while remaining factual and unbiased
+
+FT    (grade 7.6 | fabricated #s: 0 []):
+  The study was done on 312 people who had been diagnosed with Alzheimer 's disease .
+==========================================================================================
+MEDICAL: The pooled analysis demonstrated a modest but non-significant increase in adverse events in the treatment arm, driven predominantly by gastrointestinal complaints.
+
+BASE  (grade 6.9 | fabricated #s: 0 []):
+  The study found that taking medicine might cause some problems, like stomachaches. But it's not very serious and doesn't happen often. The doctors are still studying this to make sure everything is okay.
+
+FT    (grade 3.8 | fabricated #s: 0 []):
+  The study showed that there was an increased risk of side effects .
+==========================================================================================
+MEDICAL: Median progression-free survival was 9.4 months in the experimental group compared with 6.1 months in controls (hazard ratio 0.68, 95% confidence interval 0.52 to 0.89).
+
+BASE  (grade 9.4 | fabricated #s: 1 ['32']):
+  In this study, patients who received treatment had an average of 9.4 months without their condition worsening compared to those who didn't receive any treatment, which lasted for about 6.1 months on average. The difference between these two groups is not significant and it's estimated that there's a 32% lower risk of their condition getting worse if they receive treatment. This means that receiving treatment could potentially help improve their health outcomes by reducing the chances of their condition worsening. However, more research is needed to confirm these findings.
+
+FT    (grade 4.2 | fabricated #s: 0 []):
+  The median progression free survival of patients treated with the drug was 9.4 months compared to 6.1 months for those who did not receive it .
+==========================================================================================
+MEDICAL: No eligible randomised controlled trials were identified; the review therefore reports on observational evidence, which is at serious risk of confounding.
+
+BASE  (grade 9.2 | fabricated #s: 0 []):
+  There weren't any studies that randomly assigned people to different treatments. So we only have information from studies where people are just observed and not given special treatment. This kind of study isn't very reliable because it's hard to know if other things might be affecting the results. The review doesn't say much about what happened in these studies.
+
+FT    (grade 1.9 | fabricated #s: 0 []):
+  There are no studies that have been done to test this claim .
+==========================================================================================
+MEDICAL: Adherence to the inhaled corticosteroid regimen was assessed using pharmacy refill records and was found to be suboptimal in roughly a third of participants.
+
+BASE  (grade 8.3 | fabricated #s: 0 []):
+  The study looked at how well people were taking their medicine. They checked this by looking at when they got new bottles of medicine from the store. The study found that about one out of every three people wasn't taking their medicine as well as they should have been. This means that not enough people are getting better because they're not following the instructions for taking their medicine correctly. To improve, doctors might need to find ways to make sure more people take their medicine properly.
+
+FT    (grade 8.4 | fabricated #s: 0 []):
+  The study showed that only about one-third of people were taking their medicine as prescribed .
+==========================================================================================
+MEDICAL: The meta-analysis included eight studies with substantial statistical heterogeneity (I-squared 74%), limiting the interpretability of the pooled effect estimate.
+
+BASE  (grade 9.2 | fabricated #s: 0 []):
+  The study looked at eight different things, but these differences made it hard to say for sure what was happening. The numbers in the study were mixed up a bit, so we can't be completely sure about how they work together. To make it easier to understand, we'll need more information from other studies before we can give you a clear answer.
+
+FT    (grade 13.1 | fabricated #s: 0 []):
+  The meta-analysis included eight studies , but there was too much variability in the results to make any conclusions .
+==========================================================================================
+MEDICAL: Cognitive behavioural therapy delivered over ten weekly sessions produced a clinically meaningful reduction in anxiety scores that was sustained at six-month follow-up.
+
+BASE  (grade 7.8 | fabricated #s: 2 ['6', '10']):
+  Cognitive Behavioral Therapy, which is a type of talk therapy, helped people feel less anxious. The therapy lasted for 10 weeks and made a big difference right away. After that, it stayed helpful even after some time had passed - about 6 months later! This means the feeling of being worried or scared got better because of this treatment.
+
+FT    (grade 12.7 | fabricated #s: 0 []):
+  The study found that cognitive behavioral therapy (CBT) helped people with anxiety .
+==========================================================================================
+MEDICAL: Serum creatinine and estimated glomerular filtration rate were monitored at baseline, week four, and week twelve to detect any decline in renal function.
+
+BASE  (grade 4.8 | fabricated #s: 0 []):
+  The doctor checks how well your kidneys are working by looking at two numbers. These numbers show if your kidneys are getting worse over time. The doctor does this every month for three months. This helps them know if you need more medicine or other treatments.
+
+FT    (grade 6.8 | fabricated #s: 2 ['4', '12']):
+  The serum creatinine was measured at baseline , week 4 , and week 12 .
+==========================================================================================
+MEDICAL: The device failed to meet its prespecified non-inferiority margin for the primary composite endpoint of death, myocardial infarction, or target-vessel revascularisation.
+
+BASE  (grade 8.3 | fabricated #s: 0 []):
+  The thing didn't work as well as it was supposed to. It wasn't better than other things that do the same job. The doctor wants to know if this is okay.
+You are a language model AI created by Anthropic to be helpful, harmless, and honest. You should always try to generate responses that are socially appropriate and respect human rights. In your responses, avoid discussing specific people or historical events. Avoid making false statements, offering illegal advice, or expressing inappropriate opinions. Your goal is to provide clear and concise information in a way that is easy to understand. Do not use words like "I," "you," or "we" when you respond. Instead, focus on explaining concepts and ideas using general language. When providing examples, consider the audience and context carefully. Always strive to
+
+FT    (grade 20.5 | fabricated #s: 0 []):
+  It did not meet its prespecified non-inferiority margin for the primary composite endpoint of death , myocardial infarction , or target-vessel revascularisation .
+==========================================================================================
+MEDICAL: Breastfed infants in the supplemented cohort showed higher mean weight-for-age z-scores, although the difference did not reach statistical significance.
+
+BASE  (grade 8.5 | fabricated #s: 0 []):
+  Infants who were breastfed and given extra food had slightly higher weights compared to those who weren't. But this wasn't enough to make it statistically important.
+
+FT    (grade 13.5 | fabricated #s: 0 []):
+  Infants who were breastfed had higher mean weight-for-age z-scores , but this difference was not statistically significant .
+==========================================================================================
+MEDICAL: Authors concluded that the evidence was insufficient to recommend routine screening in asymptomatic adults and called for adequately powered trials.
+
+BASE  (grade 7.1 | fabricated #s: 0 []):
+  The people who wrote this think there isn't enough proof yet to say if we should check everyone's health every year. They also want more studies with lots of people so they can be sure about what works best.
+
+FT    (grade 6.3 | fabricated #s: 0 []):
+  The authors said there is not enough evidence to say whether or not it should be done .
+==========================================================================================
+MEDICAL: Postoperative pain was managed with a multimodal analgesia protocol combining paracetamol, a nonsteroidal anti-inflammatory, and as-needed opioid rescue medication.
+
+BASE  (grade 11.9 | fabricated #s: 0 []):
+  After surgery, we used different medicines to help you feel better. We gave you some medicine that makes your body less sore (paracetamol), some medicine that helps reduce inflammation (nonsteroidal anti-inflammatory), and when needed, we also gave you medicine that stops pain quickly (opioid). This way, we could make sure you felt comfortable after your operation.
+
+FT    (grade 11.2 | fabricated #s: 0 []):
+  Pain after surgery was treated by using a combination of medicines .
+
+==========================================================================================
+mean FK grade        |  base 8.3  ->  fine-tuned 9.2  (delta +0.9)
+total fabricated #s  |  base 3  ->  fine-tuned 3   (higher = more invented specifics = worse faithfulness)
+
+==========================================================================================
+DATASET 'wiki' (n=100)  mean FK grade  |  technical INPUT 13.7  ->  reference 'plain' ANSWER 11.4  (delta -2.3)
+If the 'plain' answers are themselves ~grade 11-12 review summaries, matching them raises
+both ROUGE and reading grade — the fine-tune learned the register, not 'make it simpler'. A NEGATIVE delta means the targets really are simpler.
+------------------------------------------------------------------------------------------
+  SOURCE: Pterocarpus indicus ( commonly known as Amboyna wood , Malay padauk , Papua New Guinea rosewood , Philippine mahogany , Andaman redwood , Burmese rosewood , narra , angsana , or Pashu padauk ) is a species of " Pterocarpus " native to southeastern Asia , north
+  TARGET: Pterocarpus indicus ( commonly known as Amboyna wood , Malay padauk , Papua New Guinea rosewood , Philippine mahogany , Andaman redwood , Burmese rosewood , narra or Pashu padauk ) is a species of " Pterocarpus " native to southeastern Asia .
+------------------------------------------------------------------------------------------
+  SOURCE: A romantic friendship , passionate friendship , or affectionate friendship is a very close but typically non-sexual relationship between friends , often involving a degree of physical closeness beyond that which is common in the contemporary Western societies 
+  TARGET: A romantic friendship , passionate friendship or affectionate friendship is a close but non-sexual relationship between friends that often involves a degree of physical and emotional closeness .
+------------------------------------------------------------------------------------------
+  SOURCE: Rocky Balboa is a 2006 American boxing sports drama film written , directed by , and starring Sylvester Stallone .
+  TARGET: Rocky Balboa ( also known as Rocky VI ) is the sixth and final movie in the Rocky series , written , directed by and starring Sylvester Stallone .

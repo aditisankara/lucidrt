@@ -1,0 +1,14 @@
+==============================================================================
+SCOREBOARD — base vs fine-tuned   |   dataset='wiki'  n=40  greedy
+==============================================================================
+metric                                  base   fine-tuned   verdict
+------------------------------------------------------------------------------
+ROUGE-L  (GAMED PROXY — distrust)      0.282        0.490   +74%  (not evidence of quality)
+FK grade  (lower = simpler)              8.0          8.7   WORSE (+0.70)
+fabricated #s (total; lower better)         0            0   flat
+------------------------------------------------------------------------------
+reference-target mean FK grade: 7.6  (targets are genuinely plain)
+
+Reading this: ROUGE going UP means only 'looks more like the reference'. A GENUINE
+improvement is ROUGE up AND FK grade DOWN AND fabricated #s flat/low. If ROUGE rises
+while FK grade also rises, the gain is Goodhart register-capture, not simplification.

@@ -38,7 +38,7 @@ from torch.utils.data import Dataset, DataLoader
 #   from transformers import AutoTokenizer
 
 MODEL_NAME = "Qwen/Qwen2.5-1.5B-Instruct"   # ungated; swap to meta-llama/Llama-3.2-1B-Instruct later if you like
-DATASET_NAME = "bigbio/medparasimp"
+DATASET_NAME = "lighteval/med_paragraph_simplification"
 MAX_LEN = 512
 
 # The instruction we wrap every example in. Qwen is an *instruct* model, so a clear

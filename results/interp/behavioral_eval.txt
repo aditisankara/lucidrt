@@ -1,0 +1,42 @@
+==========================================================================================
+MEDICAL: Two trials met the inclusion criteria. Both were small, reported results inadequately, and were of low methodological quality, giving very-low certainty evidence.
+
+BASE  (grade 3.3 | fabricated #s: 0 []):
+  Two studies fit our rules. They're not big enough to tell us much, and they don't use good ways to find out what's true. So we're not sure if this is right or wrong. We think it might be, but we're not completely certain about it. The information we have isn't very strong. To make sure we know for sure, we need more studies that are bigger and do things better.
+
+FT    (grade 15.3 | fabricated #s: 5 ['20', '34', '1987', '1995', '1996']):
+  We found two studies that met our inclusion criteria for this review. One study was conducted in 1987 and involved 20 participants with chronic obstructive pulmonary disease (COPD) who received either placebo or an inhaler containing budesonide plus salmeterol. The second trial took place between 1995 and 1996 and included 34 people with COPD who received either placebo or a combination of budesonide and formoterol. Neither study provided sufficient information to allow us to assess the effects on mortality, hospitalisation, exacerbations, health-related quality of life, or adverse events. We also did not have enough data to determine whether there was any difference in the number of deaths, hospitalisations, or exacerbations between the
+==========================================================================================
+MEDICAL: The intervention group showed a statistically significant reduction in systolic blood pressure relative to placebo at twelve weeks (p < 0.05).
+
+BASE  (grade 11.1 | fabricated #s: 0 []):
+  At twelve weeks, the group that received the intervention had significantly lower systolic blood pressure compared to those who received the placebo, with a p-value of less than 0.05 indicating statistical significance. The intervention was effective in reducing blood pressure.
+
+FT    (grade 13.6 | fabricated #s: 2 ['30', '126']):
+  This review included two randomised controlled trials with a total of 126 participants, which compared an oral dose of 30 mg of metoprolol succinate once daily versus placebo for the treatment of hypertension. The results from these studies suggest that metoprolol may be effective in reducing blood pressure when used as monotherapy. However, there is insufficient evidence to support its use as part of combination therapy.
+==========================================================================================
+MEDICAL: Participants received topical application weekly for six weeks; the primary endpoint was complete wound epithelialization at follow-up.
+
+BASE  (grade 9.0 | fabricated #s: 0 []):
+  Participants were given something on their skin every week for six weeks. The main thing they wanted to see happen was that the area where they had an injury healed up completely by the time they finished using it.
+
+FT    (grade 7.1 | fabricated #s: 12 ['2', '4', '8', '10', '95', '0.7', '1.7', '2.7', '236', '0.44', '0.68', '1.05']):
+  We included 10 studies (236 participants) in this review. The quality of evidence was low to very low, depending on the outcome measure and study design. We found no significant difference between groups regarding time to complete healing (mean difference (MD) -4 days, 95% confidence interval (CI) -8 to +2 days), but there were some differences in favour of the control group with respect to pain intensity (MD -1.7 points, 95% CI -2.7 to -0.7). There was also a trend towards less infection in the treatment group (RR 0.68, 95% CI 0.44 to 1.05). However, we did not find any significant differences in terms
+
+==========================================================================================
+mean FK grade        |  base 7.8  ->  fine-tuned 12.0  (delta +4.2)
+total fabricated #s  |  base 0  ->  fine-tuned 19   (higher = more invented specifics = worse faithfulness)
+
+==========================================================================================
+DATASET (n=100)  mean FK grade  |  technical INPUT 11.7  ->  reference 'plain' ANSWER 13.4
+If the 'plain' answers are themselves ~grade 11-12 review summaries, matching them raises
+both ROUGE and reading grade — the fine-tune learned the register, not 'make it simpler'.
+------------------------------------------------------------------------------------------
+  QUERY : Two trials met the inclusion criteria. One compared 2% ketanserin ointment in polyethylene glycol (PEG) with PEG alone, used twice a day by 40 participants with arterial leg ulcers, for eight weeks or until healing, whichever was sooner. One compared topical a
+  ANSWER: We found two small studies that presented data for 49 participants with arterial leg ulcers (search conducted January 2019). The studies also included participants with other kinds of ulcers, and it is not clear what proportion of participants were diabetic. N
+------------------------------------------------------------------------------------------
+  QUERY : We identified one RCT that involved 40 participants, and addressed the timing of surgery for people with recently symptomatic carotid artery stenosis. It compared very early surgery with surgery performed after 14 days of the last symptomatic event. The overal
+  ANSWER: The searches are up-to-date to 26 January 2016. We found only one randomized trial that assessed the effect of the timing of surgery. It included a total of 40 participants, ranging in age from 47 to 84 years. From the limited evidence available, we cannot tel
+------------------------------------------------------------------------------------------
+  QUERY : We included 13 studies with a total of 721 participants in the review. The studies were observational, 12 studies had only one relevant treatment arm and no control and for the one study with a control arm, very few details were given. The risk of bias was hig
+  ANSWER: The benefits of PN are uncertain as the evidence is of very low certainty, provided mainly by studies that only looked at people who received PN rather than comparing patients who received PN with those who did not. As we found no randomised controlled trials,

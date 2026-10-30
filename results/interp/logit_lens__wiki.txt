@@ -1,0 +1,498 @@
+========================================================================
+LOGIT LENS  (per-layer last-token prediction: base vs fine-tuned)
+========================================================================
+
+PROMPT 1: Two trials met the inclusion criteria. Both were small, repo...
+  final token   base='Two'  ft='Two'   (agree)
+  emerges @layer base=20  ft=19
+  layer |         base top |           ft top
+      0 |              'r' |              'r'
+      1 |              ' ' |              's'
+      2 |              ' ' |              's'
+      3 |              's' |              's'
+      4 |              's' |              's'
+      5 |              's' |              's'
+      6 |              ' ' |              's'
+      7 |              's' |              's'
+      8 |              's' |              's'
+      9 |              ' ' |   ' Description'
+     10 |            'Put' |   ' Description'
+     11 |             ' "' |    'Description'
+     12 |              ' ' |              's'
+     13 |              't' |              's'
+     14 |              't' |              's'
+     15 |             ' "' |              's'
+     16 |              ' ' |              's'
+     17 |              's' |              's'
+     18 |              's' |              's'
+     19 |              's' |            'Two'  <--
+     20 |            'Two' |            'Two'  <--
+     21 |            'Two' |            'Two'
+     22 |            'Two' |            'Two'
+     23 |            'Two' |            'Two'
+     24 |            'Two' |            'Two'
+     25 |            'Two' |            'Two'
+     26 |            'Two' |            'Two'
+     27 |            'Two' |            'Two'
+
+PROMPT 2: The intervention group showed a statistically significant re...
+  final token   base='The'  ft='The'   (agree)
+  emerges @layer base=22  ft=25
+  layer |         base top |           ft top
+      0 |              'r' |              'r'
+      1 |              '-' |              's'
+      2 |              't' |              'r'
+      3 |              's' |              's'
+      4 |              's' |              's'
+      5 |              's' |              's'
+      6 |              's' |              's'
+      7 |              's' |              's'
+      8 |              's' |              's'
+      9 |              ' ' |   ' Description'
+     10 |            'int' |   ' Description'
+     11 |             ' "' |              's'
+     12 |              ' ' |              's'
+     13 |              ' ' |              's'
+     14 |              't' |              's'
+     15 |              ' ' |              's'
+     16 |              ' ' |              's'
+     17 |              's' |              's'
+     18 |              's' |              's'
+     19 |           'When' |  '<|endoftext|>'
+     20 |         'During' |           ' The'
+     21 |           ' The' |           ' The'
+     22 |            'The' |           ' The'  <--
+     23 |            'The' |           ' The'
+     24 |            'The' |           ' The'
+     25 |            'The' |            'The'  <--
+     26 |            'The' |            'The'
+     27 |            'The' |            'The'
+
+PROMPT 3: Participants received topical application weekly for six wee...
+  final token   base='Participants'  ft='The'   (DIVERGE)
+  emerges @layer base=26  ft=27
+  layer |         base top |           ft top
+      0 |              'r' |              'r'
+      1 |              ' ' |              's'
+      2 |              's' |              's'
+      3 |              's' |              's'
+      4 |              's' |              's'
+      5 |              's' |              's'
+      6 |              's' |              's'
+      7 |              's' |              's'
+      8 |              's' |              's'
+      9 |              ' ' |   ' Description'
+     10 |            'int' |   ' Description'
+     11 |              's' |              's'
+     12 |              ' ' |              's'
+     13 |              't' |              's'
+     14 |              't' |              's'
+     15 |              ' ' |              's'
+     16 |              ' ' |              's'
+     17 |              's' |              's'
+     18 |              's' |              's'
+     19 |           'When' |  '<|endoftext|>'
+     20 |         'During' |         ' After'
+     21 |          ' Okay' |          ' They'
+     22 |            'The' |  ' participants'
+     23 |            'The' |          ' They'
+     24 |            'The' |  ' participants'
+     25 |            'The' |   'Participants'
+     26 |   'Participants' |   'Participants'  <--
+     27 |   'Participants' |            'The'  <--
+
+PROMPT 4: A total of 312 patients were randomised to receive either th...
+  final token   base='A'  ft='A'   (agree)
+  emerges @layer base=26  ft=27
+  layer |         base top |           ft top
+      0 |              'r' |              'r'
+      1 |              ' ' |              's'
+      2 |              's' |              's'
+      3 |              's' |              's'
+      4 |              's' |              's'
+      5 |              's' |              's'
+      6 |              's' |              's'
+      7 |              's' |              's'
+      8 |              's' |              's'
+      9 |              ' ' |              's'
+     10 |            'Put' |   ' Description'
+     11 |             ' "' |              's'
+     12 |              ' ' |              's'
+     13 |              't' |              's'
+     14 |              't' |              's'
+     15 |              ' ' |              's'
+     16 |              ' ' |              's'
+     17 |              's' |              's'
+     18 |              's' |              's'
+     19 |             ' A' |  '<|endoftext|>'
+     20 |          'There' |         ' There'
+     21 |         ' There' |         ' There'
+     22 |          'There' |           'Each'
+     23 |          'There' |              '3'
+     24 |          'There' |          'There'
+     25 |          'There' |          'There'
+     26 |              'A' |              '3'  <--
+     27 |              'A' |              'A'  <--
+
+PROMPT 5: The pooled analysis demonstrated a modest but non-significan...
+  final token   base='The'  ft='The'   (agree)
+  emerges @layer base=20  ft=25
+  layer |         base top |           ft top
+      0 |              'r' |              'r'
+      1 |              ' ' |              's'
+      2 |              't' |              's'
+      3 |              's' |              's'
+      4 |              's' |              's'
+      5 |              's' |              's'
+      6 |              's' |              's'
+      7 |              's' |              's'
+      8 |              's' |              's'
+      9 |              ' ' |   ' Description'
+     10 |            'int' |   ' Description'
+     11 |             ' "' |              's'
+     12 |              ' ' |              's'
+     13 |              ' ' |              's'
+     14 |              't' |              's'
+     15 |              ' ' |              's'
+     16 |              ' ' |              's'
+     17 |              's' |              's'
+     18 |              's' |              's'
+     19 |           'When' |  '<|endoftext|>'
+     20 |            'The' |        'Overall'  <--
+     21 |           ' The' |           ' The'
+     22 |            'The' |           ' The'
+     23 |            'The' |           ' The'
+     24 |            'The' |           ' The'
+     25 |            'The' |            'The'  <--
+     26 |            'The' |            'The'
+     27 |            'The' |            'The'
+
+PROMPT 6: Median progression-free survival was 9.4 months in the exper...
+  final token   base='In'  ft='Median'   (DIVERGE)
+  emerges @layer base=26  ft=27
+  layer |         base top |           ft top
+      0 |              'r' |              'r'
+      1 |              '-' |              'r'
+      2 |              't' |              'r'
+      3 |              's' |              's'
+      4 |              's' |              's'
+      5 |              's' |              's'
+      6 |              's' |              's'
+      7 |              's' |              's'
+      8 |              's' |              's'
+      9 |              ' ' |              's'
+     10 |            'int' |              's'
+     11 |             ' "' |              's'
+     12 |              ' ' |              's'
+     13 |              ' ' |              's'
+     14 |             ' "' |              's'
+     15 |              ' ' |              's'
+     16 |              ' ' |              's'
+     17 |              's' |              's'
+     18 |              's' |              's'
+     19 |           'When' |  '<|endoftext|>'
+     20 |         'During' |        'Overall'
+     21 |           ' The' |           ' The'
+     22 |            'The' |           ' The'
+     23 |            'The' |           ' The'
+     24 |            'The' |           ' The'
+     25 |            'The' |            'The'
+     26 |             'In' |            'The'  <--
+     27 |             'In' |         'Median'  <--
+
+PROMPT 7: No eligible randomised controlled trials were identified; th...
+  final token   base='There'  ft='No'   (DIVERGE)
+  emerges @layer base=23  ft=25
+  layer |         base top |           ft top
+      0 |              'r' |              'r'
+      1 |              ' ' |              's'
+      2 |              's' |              's'
+      3 |              's' |              's'
+      4 |              's' |              's'
+      5 |              's' |              's'
+      6 |              's' |              's'
+      7 |              's' |              's'
+      8 |              's' |              's'
+      9 |              ' ' |   ' Description'
+     10 |            'Put' |   ' Description'
+     11 |             ' "' |              's'
+     12 |              ' ' |              's'
+     13 |              't' |              's'
+     14 |              't' |              's'
+     15 |             ' "' |              's'
+     16 |              's' |              's'
+     17 |              's' |              's'
+     18 |              's' |              's'
+     19 |           'When' |              's'
+     20 |           'None' |           'None'
+     21 |           'None' |           'None'
+     22 |           'None' |           'None'
+     23 |          'There' |           'None'  <--
+     24 |          'There' |           'None'
+     25 |          'There' |             'No'  <--
+     26 |          'There' |             'No'
+     27 |          'There' |             'No'
+
+PROMPT 8: Adherence to the inhaled corticosteroid regimen was assessed...
+  final token   base='The'  ft='Ad'   (DIVERGE)
+  emerges @layer base=25  ft=26
+  layer |         base top |           ft top
+      0 |              'r' |              'r'
+      1 |              ' ' |              's'
+      2 |              's' |              's'
+      3 |              's' |              's'
+      4 |              's' |              's'
+      5 |              's' |              's'
+      6 |              's' |              's'
+      7 |              's' |              's'
+      8 |              's' |              's'
+      9 |              ' ' |   ' Description'
+     10 |            'Put' |   ' Description'
+     11 |             ' "' |              's'
+     12 |              ' ' |              's'
+     13 |              't' |              's'
+     14 |              't' |              's'
+     15 |              ' ' |              's'
+     16 |              ' ' |              's'
+     17 |              's' |              's'
+     18 |              's' |              's'
+     19 |           'When' |  '<|endoftext|>'
+     20 |         'During' |  '<|endoftext|>'
+     21 |      'According' |  '<|endoftext|>'
+     22 |         'Almost' |           'Only'
+     23 |         'Almost' |           'Only'
+     24 | ' Approximately' |           ' The'
+     25 |            'The' |          'About'  <--
+     26 |            'The' |             'Ad'  <--
+     27 |            'The' |             'Ad'
+
+PROMPT 9: The meta-analysis included eight studies with substantial st...
+  final token   base='The'  ft='The'   (agree)
+  emerges @layer base=20  ft=25
+  layer |         base top |           ft top
+      0 |              'r' |              'r'
+      1 |              ' ' |              's'
+      2 |              't' |              's'
+      3 |              's' |              's'
+      4 |              's' |              's'
+      5 |              's' |              's'
+      6 |              's' |              's'
+      7 |              's' |              's'
+      8 |              's' |              's'
+      9 |              ' ' |   ' Description'
+     10 |            'Put' |   ' Description'
+     11 |             ' "' |   ' Description'
+     12 |              ' ' |              's'
+     13 |              't' |              's'
+     14 |              't' |              's'
+     15 |              ' ' |              's'
+     16 |              ' ' |              's'
+     17 |              's' |              's'
+     18 |              's' |              's'
+     19 |           'When' |           ' The'
+     20 |            'The' |           ' The'  <--
+     21 |           ' The' |           ' The'
+     22 |            'The' |           ' The'
+     23 |            'The' |           ' The'
+     24 |            'The' |           ' The'
+     25 |            'The' |            'The'  <--
+     26 |            'The' |            'The'
+     27 |            'The' |            'The'
+
+PROMPT 10: Cognitive behavioural therapy delivered over ten weekly sess...
+  final token   base='C'  ft='C'   (agree)
+  emerges @layer base=26  ft=23
+  layer |         base top |           ft top
+      0 |              'r' |              'r'
+      1 |              ' ' |              's'
+      2 |              's' |              's'
+      3 |              's' |              's'
+      4 |              's' |              's'
+      5 |              's' |              's'
+      6 |              's' |              's'
+      7 |              's' |              's'
+      8 |              's' |              's'
+      9 |              ' ' |              's'
+     10 |            'int' |              's'
+     11 |              's' |              's'
+     12 |              ' ' |              's'
+     13 |              't' |              's'
+     14 |              't' |              's'
+     15 |              't' |              's'
+     16 |              't' |              's'
+     17 |              's' |              's'
+     18 |              's' |              's'
+     19 |          'https' |  '<|endoftext|>'
+     20 |          'After' |         ' After'
+     21 |         'During' |            ' It'
+     22 |          'After' |         ' After'
+     23 |         'During' |              'C'  <--
+     24 |            'The' |           ' The'
+     25 |           'Over' |           'They'
+     26 |              'C' |              'C'  <--
+     27 |              'C' |              'C'
+
+PROMPT 11: Serum creatinine and estimated glomerular filtration rate we...
+  final token   base='The'  ft='Ser'   (DIVERGE)
+  emerges @layer base=21  ft=26
+  layer |         base top |           ft top
+      0 |            '```' |              'r'
+      1 |              ' ' |              's'
+      2 |              's' |              's'
+      3 |              's' |              's'
+      4 |              's' |              's'
+      5 |              's' |              's'
+      6 |              's' |              's'
+      7 |              's' |              's'
+      8 |              's' |              's'
+      9 |              ' ' |              's'
+     10 |            'Put' |   ' Description'
+     11 |              's' |              's'
+     12 |              ' ' |              's'
+     13 |              ' ' |              's'
+     14 |              't' |              's'
+     15 |              ' ' |              's'
+     16 |              ' ' |              's'
+     17 |              's' |              's'
+     18 |              's' |              's'
+     19 |           'When' |              's'
+     20 |         'During' |           'Also'
+     21 |            'The' |         ' These'  <--
+     22 |            'The' |         ' These'
+     23 |            'The' |          ' They'
+     24 |            'The' |         ' Blood'
+     25 |            'The' |           'They'
+     26 |            'The' |            'Ser'  <--
+     27 |            'The' |            'Ser'
+
+PROMPT 12: The device failed to meet its prespecified non-inferiority m...
+  final token   base='The'  ft='The'   (agree)
+  emerges @layer base=20  ft=23
+  layer |         base top |           ft top
+      0 |              'r' |              'r'
+      1 |              ' ' |              's'
+      2 |              's' |              's'
+      3 |              's' |              's'
+      4 |              's' |              's'
+      5 |              's' |              's'
+      6 |              's' |              's'
+      7 |              's' |              's'
+      8 |              's' |              's'
+      9 |              ' ' |              's'
+     10 |            'Put' |              's'
+     11 |              's' |              's'
+     12 |              ' ' |              's'
+     13 |              't' |              's'
+     14 |              't' |              's'
+     15 |              ' ' |              's'
+     16 |              ' ' |              's'
+     17 |              's' |              's'
+     18 |              's' |              's'
+     19 |           'When' |           ' The'
+     20 |            'The' |           ' The'  <--
+     21 |           ' The' |           ' The'
+     22 |            'The' |           ' The'
+     23 |            'The' |            'The'  <--
+     24 |            'The' |           ' The'
+     25 |            'The' |            'The'
+     26 |            'The' |            'The'
+     27 |            'The' |            'The'
+
+PROMPT 13: Breastfed infants in the supplemented cohort showed higher m...
+  final token   base='Inf'  ft='Bre'   (DIVERGE)
+  emerges @layer base=27  ft=27
+  layer |         base top |           ft top
+      0 |            '```' |              'r'
+      1 |              ' ' |              's'
+      2 |              's' |              's'
+      3 |              's' |              's'
+      4 |              's' |              's'
+      5 |              's' |              's'
+      6 |              's' |              's'
+      7 |              's' |              's'
+      8 |              's' |              's'
+      9 |              ' ' |   ' Description'
+     10 |            'Put' |   ' Description'
+     11 |             ' "' |              's'
+     12 |              ' ' |              's'
+     13 |              't' |              's'
+     14 |              't' |              's'
+     15 |             ' "' |              's'
+     16 |            '...' |              's'
+     17 |              's' |              's'
+     18 |              's' |              's'
+     19 |           'When' |  '<|endoftext|>'
+     20 |            '```' |  '<|endoftext|>'
+     21 |           'When' |         ' Those'
+     22 |         '\ufeff' |        ' babies'
+     23 |        ' Babies' |        ' Babies'
+     24 |        ' Breast' |        ' Babies'
+     25 |        ' Breast' |        ' babies'
+     26 |        ' Breast' |            'The'
+     27 |            'Inf' |            'Bre'  <--
+
+PROMPT 14: Authors concluded that the evidence was insufficient to reco...
+  final token   base='Authors'  ft='Authors'   (agree)
+  emerges @layer base=23  ft=27
+  layer |         base top |           ft top
+      0 |              'r' |              'r'
+      1 |              ' ' |              's'
+      2 |              's' |              's'
+      3 |              's' |              's'
+      4 |              's' |              's'
+      5 |              's' |              's'
+      6 |              's' |              's'
+      7 |              's' |              's'
+      8 |              's' |              's'
+      9 |              ' ' |   ' Description'
+     10 |            'Put' |   ' Description'
+     11 |              's' |              's'
+     12 |              ' ' |              's'
+     13 |              ' ' |              's'
+     14 |              't' |              's'
+     15 |              ' ' |              's'
+     16 |              's' |              's'
+     17 |              's' |              's'
+     18 |              's' |              's'
+     19 |            '```' |  '<|endoftext|>'
+     20 |            '```' |  '<|endoftext|>'
+     21 |   ' Researchers' |          ' They'
+     22 |            'The' |   ' researchers'
+     23 |        'Authors' |          ' They'  <--
+     24 |        'Authors' |          ' They'
+     25 |            'The' |           'They'
+     26 |            'The' |            'The'
+     27 |        'Authors' |        'Authors'  <--
+
+PROMPT 15: Postoperative pain was managed with a multimodal analgesia p...
+  final token   base='Post'  ft='Post'   (agree)
+  emerges @layer base=27  ft=26
+  layer |         base top |           ft top
+      0 |              'r' |              'r'
+      1 |              ' ' |              's'
+      2 |              's' |              's'
+      3 |              's' |              's'
+      4 |              's' |              's'
+      5 |              's' |              's'
+      6 |              's' |              's'
+      7 |              's' |              's'
+      8 |              's' |              's'
+      9 |              ' ' |              's'
+     10 |            'Put' |   ' Description'
+     11 |              's' |              's'
+     12 |              ' ' |              's'
+     13 |              ' ' |              's'
+     14 |              't' |              's'
+     15 |              ' ' |              's'
+     16 |              ' ' |              's'
+     17 |              's' |              's'
+     18 |              's' |              's'
+     19 |           'When' |  '<|endoftext|>'
+     20 |          'After' |         ' After'
+     21 |          'After' |         ' After'
+     22 |          'After' |         ' After'
+     23 |          'After' |          ' pain'
+     24 |          'After' |          ' pain'
+     25 |          'After' |          ' pain'
+     26 |          'After' |           'Post'  <--
+     27 |           'Post' |           'Post'  <--

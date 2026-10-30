@@ -1,0 +1,39 @@
+==========================================================================================
+DATASET 'med'  (lighteval/med_paragraph_simplification)
+  TRAP: 'plain' answers are grade-13 Cochrane review summaries (harder than input)
+  n=200  mean FK grade:  SOURCE  11.5  ->  TARGET  13.5   (delta +1.9, abs target 13.5)   => TRAP — target grade 13.5 >= 10 (and harder than source; not plain)
+------------------------------------------------------------------------------------------
+  SOURCE (g14): Two trials met the inclusion criteria. One compared 2% ketanserin ointment in polyethylene glycol (PEG) with PEG alone, used twice a day by 40 participants with arterial leg ulcers, for eight weeks or until healing, whic
+  TARGET (g13): We found two small studies that presented data for 49 participants with arterial leg ulcers (search conducted January 2019). The studies also included participants with other kinds of ulcers, and it is not clear what pro
+------------------------------------------------------------------------------------------
+  SOURCE (g12): We identified one RCT that involved 40 participants, and addressed the timing of surgery for people with recently symptomatic carotid artery stenosis. It compared very early surgery with surgery performed after 14 days o
+  TARGET (g12): The searches are up-to-date to 26 January 2016. We found only one randomized trial that assessed the effect of the timing of surgery. It included a total of 40 participants, ranging in age from 47 to 84 years. From the l
+
+==========================================================================================
+DATASET 'scilay'  (paniniDot/sci_lay)
+  TRAP (absolute): lay summaries are simpler than the abstract but still grade ~16
+  n=200  mean FK grade:  SOURCE  17.1  ->  TARGET  16.4   (delta -0.7, abs target 16.4)   => TRAP — target grade 16.4 >= 10 (simpler than source but still not plain)
+------------------------------------------------------------------------------------------
+  SOURCE (g17): Single-cell RNA sequencing (scRNA-seq) is a versatile tool for discovering and annotating cell types and states, but the determination and annotation of cell subtypes is often subjective and arbitrary. Often, it is not e
+  TARGET (g13): Single cell RNA-seq is a powerful method to assign cell identity, but the purity of cell clusters arising from this data is not clear. Here the authors present an entropy-based statistic called ROGUE to quantify the puri
+------------------------------------------------------------------------------------------
+  SOURCE (g16): Dual oxidases (DUOXs) produce hydrogen peroxide by transferring electrons from intracellular NADPH to extracellular oxygen. They are involved in many crucial biological processes and human diseases, especially in thyroid
+  TARGET (g19): Dual oxidases (DUOXs), assembled from the catalytic DUOX and the auxiliary DUOXA subunits, produce hydrogen peroxide by transferring electrons from intracellular NADPH to extracellular oxygen in a calcium-activated manne
+
+==========================================================================================
+DATASET 'wiki'  (GEM/wiki_auto_asset_turk)
+  CANDIDATE plain set (Wiki->Simple-Wiki); vet with diagnose before training
+  n=200  mean FK grade:  SOURCE  13.5  ->  TARGET  11.2   (delta -2.3, abs target 11.2)   => TRAP — target grade 11.2 >= 10 (simpler than source but still not plain)
+------------------------------------------------------------------------------------------
+  SOURCE (g33): Pterocarpus indicus ( commonly known as Amboyna wood , Malay padauk , Papua New Guinea rosewood , Philippine mahogany , Andaman redwood , Burmese rosewood , narra , angsana , or Pashu padauk ) is a species of " Pterocarp
+  TARGET (g20): Pterocarpus indicus ( commonly known as Amboyna wood , Malay padauk , Papua New Guinea rosewood , Philippine mahogany , Andaman redwood , Burmese rosewood , narra or Pashu padauk ) is a species of " Pterocarpus " native 
+------------------------------------------------------------------------------------------
+  SOURCE (g22): A romantic friendship , passionate friendship , or affectionate friendship is a very close but typically non-sexual relationship between friends , often involving a degree of physical closeness beyond that which is commo
+  TARGET (g18): A romantic friendship , passionate friendship or affectionate friendship is a close but non-sexual relationship between friends that often involves a degree of physical and emotional closeness .
+
+==========================================================================================
+SUMMARY (CLEAN needs BOTH: delta < 0 AND abs target grade < 10):
+       wiki : delta -2.3   abs-target g11.2   [TRAP]
+     scilay : delta -0.7   abs-target g16.4   [TRAP]
+        med : delta +1.9   abs-target g13.5   [TRAP]
+Fine-tune on a CLEAN dataset; keep the TRAP ones as failure cases.
